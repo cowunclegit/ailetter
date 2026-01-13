@@ -1,0 +1,42 @@
+openapi: 3.0.0
+info:
+  title: AI News Curation API - Visual Thumbnails and Links
+  version: 1.4.0
+
+paths:
+  /api/trends:
+    get:
+      summary: Get trends with visual enrichment
+      responses:
+        '200':
+          description: List of trend items including thumbnail URLs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrendItem'
+
+components:
+  schemas:
+    TrendItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        original_url:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+        summary:
+          type: string
+        thumbnail_url:
+          type: string
+          nullable: true
+          description: "URL to the preview image scraped from source"
+        status:
+          type: string
+          enum: [available, draft, sent]

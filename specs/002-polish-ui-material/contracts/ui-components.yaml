@@ -1,0 +1,63 @@
+# UI Component Contracts
+# Defines the props interface for key reusable components
+
+components:
+  Layout:
+    description: "Main application wrapper with Navigation and Content area"
+    props:
+      children:
+        type: ReactNode
+        required: true
+        description: "Page content"
+
+  TrendCard:
+    description: "Displays a single trend item in the grid"
+    props:
+      title:
+        type: string
+        required: true
+      summary:
+        type: string
+        required: false
+      source:
+        type: string
+        required: true
+      date:
+        type: string
+        required: true
+      isSelected:
+        type: boolean
+        required: true
+      onToggle:
+        type: "(id: number) => void"
+        required: true
+      aiSelected:
+        type: boolean
+        required: false
+
+  FeedbackSnackbar:
+    description: "Global feedback notification component"
+    props:
+      open:
+        type: boolean
+        required: true
+      message:
+        type: string
+        required: true
+      severity:
+        type: "success" | "error" | "info" | "warning"
+        default: "info"
+      onClose:
+        type: "() => void"
+        required: true
+
+  PageHeader:
+    description: "Standardized header for page titles and actions"
+    props:
+      title:
+        type: string
+        required: true
+      action:
+        type: ReactNode
+        required: false
+        description: "Optional action button (e.g., 'Add Source')"

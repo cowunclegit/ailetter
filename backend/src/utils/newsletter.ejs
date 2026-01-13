@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Weekly Trends</title>
+</head>
+<body style="font-family: sans-serif;">
+    <h1>AI Weekly Trends</h1>
+    <p>Here are your curated trends for the week:</p>
+    <ul>
+        <% items.forEach(function(item) { %>
+            <li style="margin-bottom: 20px; list-style: none;">
+                <% if (item.thumbnail_url) { %>
+                    <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 200px; height: auto; display: block; margin-bottom: 5px; border-radius: 4px;">
+                <% } %>
+                <a href="<%= item.original_url %>" style="font-size: 18px; font-weight: bold; text-decoration: none; color: #007bff;">
+                    <%= item.title %>
+                </a>
+                <p style="margin: 5px 0; color: #666;"><%= item.summary %></p>
+            </li>
+        <% }); %>
+    </ul>
+    <hr>
+    <% if (typeof confirmation_uuid !== 'undefined' && confirmation_uuid) { %>
+        <div style="background: #f0f0f0; padding: 20px; text-align: center; border: 1px solid #ccc;">
+            <p><strong>Curator Preview</strong></p>
+            <p>If this looks good, click the link below to send to all subscribers:</p>
+            <a href="http://localhost:3000/api/newsletters/confirm/<%= confirmation_uuid %>" 
+               style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+               Confirm and Send to All
+            </a>
+        </div>
+        <hr>
+    <% } %>
+    <p><a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>">Unsubscribe</a></p>
+</body>
+</html>

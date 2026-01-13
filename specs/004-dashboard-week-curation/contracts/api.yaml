@@ -1,0 +1,59 @@
+openapi: 3.0.0
+info:
+  title: AI News Curation API - Week Based Improvements
+  version: 1.1.0
+
+paths:
+  /api/trends:
+    get:
+      summary: Get filtered trends
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of trend items for the specified week
+
+  /api/trends/collect:
+    post:
+      summary: Trigger targeted collection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+      responses:
+        '202':
+          description: Collection started for the specific week
+        '409':
+          description: Collection already in progress for this specific week
+
+  /api/trends/collect/status:
+    get:
+      summary: Check collection status for a week
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Status of the collection job

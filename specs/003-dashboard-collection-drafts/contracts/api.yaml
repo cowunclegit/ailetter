@@ -1,0 +1,23 @@
+# API Contract: Dashboard Collection and Draft History
+
+## Endpoints
+
+### 1. Manual Collection
+- **POST /api/trends/collect**
+    - **Description**: Triggers the collection process in the background.
+    - **Response**: `202 Accepted`
+    - **Body**: `{ "status": "started" }` or `409 Conflict` if already running.
+
+### 2. Weekly Trends
+- **GET /api/trends**
+    - **Query Params**:
+        - `startDate`: ISO Date string
+        - `endDate`: ISO Date string
+    - **Response**: `200 OK`
+    - **Body**: List of `TrendItem` with an additional `isDuplicate` boolean field.
+
+### 3. Draft History
+- **GET /api/newsletters**
+    - **Description**: Returns all past newsletters (drafts and sent).
+    - **Response**: `200 OK`
+    - **Body**: List of `{ id, issue_date, status, created_at, sent_at, item_count }`.

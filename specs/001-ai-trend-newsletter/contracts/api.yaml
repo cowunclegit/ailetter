@@ -1,0 +1,128 @@
+openapi: 3.0.0
+info:
+  title: AI Trend Newsletter API
+  version: 1.0.0
+  description: API for managing sources, reviewing trends, and sending newsletters.
+
+paths:
+  /sources:
+    get:
+      summary: List all sources
+      tags: [Sources]
+      responses:
+        '200':
+          description: List of configured sources
+    post:
+      summary: Add a new source
+      tags: [Sources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                type: { type: string, enum: [rss, youtube] }
+                url: { type: string }
+      responses:
+        '201':
+          description: Source created
+
+  /sources/{id}:
+    delete:
+      summary: Remove a source
+      tags: [Sources]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Source deleted
+
+  /trends:
+    get:
+      summary: Get collected trend items
+      tags: [Trends]
+      parameters:
+        - name: ai_selected_only
+          in: query
+          schema: { type: boolean }
+          description: If true, returns only items selected by AI
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: List of trend items
+
+  /newsletters:
+    get:
+      summary: List newsletters
+      tags: [Newsletters]
+      responses:
+        '200':
+          description: History of newsletters
+    post:
+      summary: Create a newsletter draft
+      tags: [Newsletters]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_ids: 
+                  type: array
+                  items: { type: integer }
+      responses:
+        '201':
+          description: Draft created
+
+  /newsletters/{id}/send:
+    post:
+      summary: Send a newsletter to subscribers
+      tags: [Newsletters]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Newsletter queued for sending
+
+  /subscribers:
+    post:
+      summary: Subscribe a new user (Public)
+      tags: [Subscribers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '201':
+          description: Subscribed successfully
+
+  /subscribers/unsubscribe:
+    post:
+      summary: Unsubscribe a user (Public)
+      tags: [Subscribers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: { type: string }
+      responses:
+        '200':
+          description: Unsubscribed successfully

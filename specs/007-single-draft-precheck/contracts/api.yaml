@@ -1,0 +1,42 @@
+openapi: 3.0.0
+info:
+  title: AI News Curation API - Single Draft and Pre-check
+  version: 1.4.0
+
+paths:
+  /api/newsletters/active-draft:
+    get:
+      summary: Detect and retrieve the single active draft
+      responses:
+        '200':
+          description: Details of the current draft or null if none exists
+          content:
+            application/json:
+              schema:
+                type: object
+                nullable: true
+                properties:
+                  id:
+                    type: integer
+                  item_ids:
+                    type: array
+                    items:
+                      type: integer
+
+  /api/newsletters/active-draft/toggle-item:
+    post:
+      summary: Sync a single item toggle with the active draft
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [item_id]
+              properties:
+                item_id:
+                  type: integer
+      responses:
+        '200':
+          description: Toggle successful (added or removed)
+        '404':
+          description: No active draft found to sync with

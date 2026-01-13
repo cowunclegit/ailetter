@@ -1,0 +1,53 @@
+openapi: 3.0.0
+info:
+  title: AI News Curation API - Simplified Dashboard
+  version: 1.2.0
+
+paths:
+  /api/trends:
+    get:
+      summary: Get trends for the last 28 days
+      description: Returns all trends from the last 4 weeks by default, including their newsletter status.
+      parameters:
+        - name: startDate
+          in: query
+          description: Optional start date (ISO8601). Defaults to 28 days ago.
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Optional end date (ISO8601). Defaults to current time.
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of trend items with status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrendItem'
+
+components:
+  schemas:
+    TrendItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        original_url:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+        summary:
+          type: string
+        status:
+          type: string
+          enum: [available, draft, sent]
+          description: "Calculated based on associated newsletters"

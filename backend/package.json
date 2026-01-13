@@ -1,0 +1,42 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon src/server.js",
+    "db:migrate": "node src/db/migrate.js",
+    "test": "jest --forceExit --detectOpenHandles --maxWorkers=1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.2.1",
+    "googleapis": "^170.0.0",
+    "helmet": "^8.1.0",
+    "metascraper": "^5.49.15",
+    "metascraper-image": "^5.49.15",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "openai": "^6.16.0",
+    "rss-parser": "^3.13.0",
+    "sqlite3": "^5.1.7",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.7.4",
+    "supertest": "^7.2.2"
+  }
+}
