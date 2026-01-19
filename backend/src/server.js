@@ -13,11 +13,15 @@ const { job } = require('./jobs/collectionJob');
 
 const app = express();
 
+// Serve Let's Encrypt ACME challenges
+app.use('/.well-known/acme-challenge', express.static(path.join(__dirname, '../.well-known/acme-challenge')));
+
 app.use(cors());
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "https:"],
       "upgrade-insecure-requests": null,
     },
   },
@@ -35,6 +39,8 @@ app.use('/api/trends', trendsRouter);
 app.use('/api/newsletters', require('./api/newsletters'));
 app.use('/api/subscribers', require('./api/subscribers'));
 app.use('/api/sources', require('./api/sources'));
+app.use('/api/categories', require('./api/categories'));
+app.use('/api/debug', require('./api/debug'));
 
 // Serve static files from the React frontend app
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
@@ -53,8 +59,8 @@ if (process.env.NODE_ENV !== 'test') {
 
 if (require.main === module) {
   const httpsOptions = {
-    key: fs.readFileSync(path.join(__dirname, '../certs/key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, '../certs/cert.pem'))
+    key: fs.readFileSync(config.sslKeyPath || path.join(__dirname, '../certs/key.pem')),
+    cert: fs.readFileSync(config.sslCertPath || path.join(__dirname, '../certs/cert.pem'))
   };
 
   https.createServer(httpsOptions, app).listen(config.port, () => {

@@ -20,10 +20,14 @@ import {
   Box, 
   CircularProgress, 
   Typography,
-  Button
+  Button,
+  TextField,
+  Paper
 } from '@mui/material';
 import PageHeader from '../components/common/PageHeader';
 import DraggableItem from '../components/features/DraggableItem';
+import NewsletterPreview from '../components/features/NewsletterPreview';
+import RichTextEditor from '../components/features/RichTextEditor';
 import { useFeedback } from '../contexts/FeedbackContext';
 
 const API_URL = '/api';
@@ -32,8 +36,13 @@ const NewsletterDraft = () => {
   const { id } = useParams();
   const [newsletter, setNewsletter] = useState(null);
   const [items, setItems] = useState([]);
+  const [subject, setSubject] = useState('');
+  const [introductionHtml, setIntroductionHtml] = useState('');
+  const [conclusionHtml, setConclusionHtml] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const { showFeedback } = useFeedback();
 
   const sensors = useSensors(
@@ -45,19 +54,89 @@ const NewsletterDraft = () => {
 
   useEffect(() => {
     fetchNewsletter();
+    fetchPreview();
   }, [id]);
 
   const fetchNewsletter = async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/newsletters/${id}`);
-      setNewsletter(response);
+      setNewsletter(response.data);
       setItems(response.data.items);
+      setSubject(response.data.subject || '');
+      setIntroductionHtml(response.data.introduction_html || '');
+      setConclusionHtml(response.data.conclusion_html || '');
     } catch (error) {
       console.error('Error fetching newsletter:', error);
       showFeedback('Failed to load newsletter draft.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubjectChange = (e) => {
+    setSubject(e.target.value);
+  };
+
+  const handleAIRecommend = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/newsletters/${id}/ai-recommend-subject`, {
+        current_subject: subject
+      });
+      const newSubject = response.data.suggested_subject;
+      setSubject(newSubject);
+      
+      // Persist immediately
+      await axios.put(`${API_URL}/newsletters/${id}`, { 
+        subject: newSubject
+      });
+      
+      showFeedback('AI suggested a new subject', 'info');
+      fetchPreview();
+    } catch (error) {
+      console.error('Error getting AI recommendation:', error);
+      showFeedback('Failed to get AI recommendation.', 'error');
+    }
+  };
+
+  const saveDraftContent = async () => {
+    try {
+      await axios.put(`${API_URL}/newsletters/${id}`, { 
+        subject,
+        introduction_html: introductionHtml,
+        conclusion_html: conclusionHtml
+      });
+      showFeedback('Draft updated successfully', 'success');
+      fetchPreview();
+    } catch (error) {
+      console.error('Error saving draft content:', error);
+      showFeedback('Failed to save draft changes.', 'error');
+    }
+  };
+
+  const handleDeleteItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to remove this item?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/newsletters/${id}/items/${itemId}`);
+      setItems(items.filter(item => item.id !== itemId));
+      showFeedback('Item removed successfully', 'success');
+      fetchPreview();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      showFeedback('Failed to remove item.', 'error');
+    }
+  };
+
+  const fetchPreview = async () => {
+    setPreviewLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/newsletters/${id}/preview`);
+      setPreviewHtml(response.data);
+    } catch (error) {
+      console.error('Error fetching preview:', error);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -92,6 +171,7 @@ const NewsletterDraft = () => {
         }));
         await axios.put(`${API_URL}/newsletters/${id}/reorder`, { item_orders: itemOrders });
         showFeedback('Order updated successfully', 'success');
+        fetchPreview(); // Refresh preview after reordering
       } catch (error) {
         console.error('Error updating order:', error);
         showFeedback('Failed to save new order.', 'error');
@@ -116,19 +196,47 @@ const NewsletterDraft = () => {
     <Container maxWidth="md">
       <PageHeader 
         title={`Organize Newsletter #${id}`} 
-        action={
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleSendTest}
-            disabled={sending}
-          >
-            {sending ? <CircularProgress size={24} color="inherit" /> : 'Send Test Mail'}
-          </Button>
-        }
       />
       
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+              label="Subject"
+              variant="outlined"
+              fullWidth
+              value={subject}
+              onChange={handleSubjectChange}
+              onBlur={saveDraftContent}
+              placeholder="Newsletter Subject"
+            />
+            <Button 
+              variant="outlined" 
+              onClick={handleAIRecommend}
+              sx={{ whiteSpace: 'nowrap', height: '56px' }}
+            >
+              AI Recommend
+            </Button>
+          </Box>
+        </Paper>
+      </Box>
+
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <RichTextEditor 
+          label="Introduction" 
+          value={introductionHtml} 
+          onChange={setIntroductionHtml} 
+        />
+        
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button variant="contained" onClick={saveDraftContent} size="small">
+            Save Introduction
+          </Button>
+        </Box>
+      </Box>
+
       <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>Drag to Reorder Items</Typography>
         <DndContext 
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -145,11 +253,35 @@ const NewsletterDraft = () => {
                 title={item.title} 
                 source={item.source_name} 
                 date={new Date(item.published_at).toLocaleDateString()} 
+                originalUrl={item.original_url}
+                onDelete={handleDeleteItem}
               />
             ))}
           </SortableContext>
         </DndContext>
       </Box>
+
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <RichTextEditor 
+          label="Conclusion" 
+          value={conclusionHtml} 
+          onChange={setConclusionHtml} 
+        />
+        
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button variant="contained" onClick={saveDraftContent} size="small">
+            Save Conclusion
+          </Button>
+        </Box>
+      </Box>
+
+      <NewsletterPreview 
+        subject={subject}
+        html={previewHtml} 
+        loading={previewLoading} 
+        onSendTest={handleSendTest}
+        sendingTest={sending}
+      />
     </Container>
   );
 };

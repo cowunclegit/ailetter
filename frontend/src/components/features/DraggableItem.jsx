@@ -1,10 +1,11 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography, Box, Link, IconButton } from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-const DraggableItem = ({ id, title, source, date }) => {
+const DraggableItem = ({ id, title, source, date, originalUrl, onDelete }) => {
   const {
     attributes,
     listeners,
@@ -33,12 +34,23 @@ const DraggableItem = ({ id, title, source, date }) => {
       </Box>
       <Box sx={{ flexGrow: 1 }}>
         <Typography variant="subtitle1" component="div">
-          {title}
+          <Link href={originalUrl} target="_blank" rel="noopener" underline="hover" color="primary">
+            {title}
+          </Link>
         </Typography>
         <Typography variant="caption" color="textSecondary">
           {source} • {date}
         </Typography>
       </Box>
+      <IconButton 
+        onClick={() => onDelete && onDelete(id)} 
+        color="error" 
+        size="small"
+        sx={{ ml: 1 }}
+        aria-label="delete item"
+      >
+        <DeleteIcon />
+      </IconButton>
     </Paper>
   );
 };

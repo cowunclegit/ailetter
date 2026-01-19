@@ -74,3 +74,30 @@ const formatDate = (date) => {
   const d = String(date.getUTCDate()).padStart(2, '0');
   return `${m}.${d}`;
 };
+
+export const groupTrendsByDate = (trends) => {
+  if (!Array.isArray(trends)) return [];
+  const groups = [];
+  let currentDate = null;
+  let currentGroup = null;
+
+  trends.forEach(trend => {
+    const date = new Date(trend.published_at);
+    const dateKey = date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+    if (dateKey !== currentDate) {
+      if (currentGroup) {
+        groups.push(currentGroup);
+      }
+      currentDate = dateKey;
+      currentGroup = { date: dateKey, items: [] };
+    }
+    currentGroup.items.push(trend);
+  });
+  
+  if (currentGroup) {
+    groups.push(currentGroup);
+  }
+  
+  return groups;
+};

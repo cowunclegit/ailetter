@@ -6,11 +6,18 @@ const { collectionService, runCollection } = require('../jobs/collectionJob');
 router.get('/', async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
     const aiSelectedOnly = req.query.ai_selected_only === 'true';
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
     
-    const trends = await TrendItemModel.getAll({ limit, aiSelectedOnly, startDate, endDate });
+    let categoryIds = req.query.categoryIds;
+    if (categoryIds) {
+      if (!Array.isArray(categoryIds)) categoryIds = [categoryIds];
+      categoryIds = categoryIds.map(Number);
+    }
+    
+    const trends = await TrendItemModel.getAll({ limit, offset, aiSelectedOnly, startDate, endDate, categoryIds });
     res.json(trends);
   } catch (error) {
     next(error);

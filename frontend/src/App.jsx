@@ -9,9 +9,11 @@ import Layout from './components/layout/Layout';
 // Import pages (assuming they exist based on main.jsx content)
 import Dashboard from './pages/Dashboard';
 import Sources from './pages/Sources';
+import CategoryManagement from './pages/CategoryManagement';
 import Public from './pages/Public';
 import NewsletterHistory from './pages/NewsletterHistory';
 import NewsletterDraft from './pages/NewsletterDraft';
+import DebugPage from './pages/Debug';
 
 function App() {
   return (
@@ -24,11 +26,13 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/newsletters/:id/draft" element={<NewsletterDraft />} />
               <Route path="/sources" element={<Sources />} />
+              <Route path="/categories" element={<CategoryManagement />} />
               <Route path="/history" element={<NewsletterHistory />} />
               <Route path="/subscribe" element={<Public />} />
               <Route path="/unsubscribe" element={<Public />} />
               <Route path="/confirmation-success" element={<Public type="success" />} />
               <Route path="/confirmation-failed" element={<Public type="failed" />} />
+              <Route path="/debug" element={<DebugPage />} />
             </Routes>
           </Layout>
           <FeedbackSnackbar />

@@ -41,6 +41,18 @@ router.post('/active-draft/toggle-item', async (req, res, next) => {
   }
 });
 
+router.post('/active-draft/clear', async (req, res, next) => {
+  try {
+    const result = await newsletterService.clearDraftItems();
+    res.json(result);
+  } catch (error) {
+    if (error.message === 'No active draft found') {
+      return res.status(404).json({ message: error.message });
+    }
+    next(error);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   const { item_ids } = req.body || {};
   if (!item_ids || !Array.isArray(item_ids) || item_ids.length === 0) {
@@ -63,6 +75,53 @@ router.get('/:id', async (req, res, next) => {
     const newsletter = await newsletterService.getById(req.params.id);
     if (!newsletter) return res.status(404).json({ message: 'Newsletter not found' });
     res.json(newsletter);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/:id', async (req, res, next) => {
+  try {
+    await newsletterService.updateDraftContent(req.params.id, req.body);
+    res.json({ success: true, message: 'Newsletter updated successfully' });
+  } catch (error) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: error.message });
+    }
+    next(error);
+  }
+});
+
+router.delete('/:id/items/:trendItemId', async (req, res, next) => {
+  try {
+    const success = await newsletterService.removeItem(req.params.id, req.params.trendItemId);
+    if (!success) return res.status(404).json({ message: 'Item not found in newsletter' });
+    res.json({ success: true, message: 'Item removed successfully' });
+  } catch (error) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: error.message });
+    }
+    next(error);
+  }
+});
+
+router.post('/:id/ai-recommend-subject', async (req, res, next) => {
+  const { current_subject } = req.body || {};
+  try {
+    const suggested = (current_subject || '') + ' (AI 추천 제목)';
+    res.json({ suggested_subject: suggested.trim() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/:id/preview', async (req, res, next) => {
+  try {
+    const newsletter = await newsletterService.getById(req.params.id);
+    if (!newsletter) return res.status(404).json({ message: 'Newsletter not found' });
+    
+    const html = generateNewsletterHtml(newsletter);
+    res.send(html);
   } catch (error) {
     next(error);
   }

@@ -1,9 +1,14 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import TrendCard from '../components/features/TrendCard';
+import CollectButton from '../components/CollectButton';
 import PageHeader from '../components/common/PageHeader';
-import { get28DayRange, getISOWeek } from '../utils/dateUtils';
+import DailyGroup from '../components/features/DailyGroup';
+import TagFilter from '../components/features/TagFilter';
+import { groupTrendsByDate } from '../utils/dateUtils';
+import { trendsApi } from '../api/trendsApi';
+import { categoriesApi } from '../api/categoriesApi';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 import { 
   Button, 
   CircularProgress, 
@@ -12,10 +17,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  Grid,
-  Typography,
-  Divider
+  DialogActions
 } from '@mui/material';
 import { useFeedback } from '../contexts/FeedbackContext';
 
@@ -24,43 +26,87 @@ const API_URL = '/api';
 const Dashboard = () => {
   const [trends, setTrends] = useState([]);
   const [selectedTrends, setSelectedTrends] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [collecting, setCollecting] = useState(false);
   const [activeDraftId, setActiveDraftId] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  
   const { showFeedback } = useFeedback();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      setLoading(true);
-      await Promise.all([fetchTrends(), detectActiveDraft()]);
-      setLoading(false);
-    };
-    initializeDashboard();
-  }, []);
-
-  const fetchTrends = async () => {
+  const fetchTrends = useCallback(async (isReset = false, categoryIds = selectedCategoryIds) => {
     try {
-      const { start, end } = get28DayRange();
-      const response = await axios.get(`${API_URL}/trends`, { 
-        params: { startDate: start, endDate: end } 
-      });
-      setTrends(response.data);
+      setLoading(true);
+      const currentOffset = isReset ? 0 : offset;
+      const limit = 20;
+      
+      const params = { 
+        limit, 
+        offset: currentOffset,
+        startDate: '2000-01-01',
+        categoryIds
+      };
+
+      const data = await trendsApi.getTrends(params);
+      const items = Array.isArray(data) ? data : [];
+      
+      if (isReset) {
+        setTrends(items);
+        setOffset(items.length);
+      } else {
+        setTrends(prev => [...prev, ...items]);
+        setOffset(prev => prev + items.length);
+      }
+      
+      if (items.length < limit) setHasMore(false);
+      else setHasMore(true);
+
     } catch (error) {
       console.error('Error fetching trends:', error);
       showFeedback('Failed to load trends.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [offset, showFeedback, selectedCategoryIds]);
+
+  const loadCategories = async () => {
+    try {
+      const data = await categoriesApi.getAll();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   };
+
+  // Initial load
+  useEffect(() => {
+    const initializeDashboard = async () => {
+      await Promise.all([
+        fetchTrends(true), 
+        detectActiveDraft(),
+        loadCategories()
+      ]);
+    };
+    initializeDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const lastTrendElementRef = useInfiniteScroll(() => {
+    fetchTrends(false);
+  }, hasMore, loading);
 
   const detectActiveDraft = async () => {
     try {
       const response = await axios.get(`${API_URL}/newsletters/active-draft`);
-      if (response.data) {
+      if (response.data && response.data.items) {
         setActiveDraftId(response.data.id);
         setSelectedTrends(response.data.items.map(item => item.id));
       } else {
-        setActiveDraftId(null);
+        setActiveDraftId(response.data?.id || null);
         setSelectedTrends([]);
       }
     } catch (error) {
@@ -69,24 +115,7 @@ const Dashboard = () => {
   };
 
   const groupedTrends = useMemo(() => {
-    const groups = [];
-    let currentWeek = null;
-
-    trends.forEach(trend => {
-      const week = getISOWeek(trend.published_at);
-      if (week !== currentWeek) {
-        currentWeek = week;
-        // Determine label (simplified logic for "This Week", "Last Week")
-        const nowWeek = getISOWeek(new Date().toISOString());
-        let label = `Week ${week}`;
-        if (week === nowWeek) label = 'This Week';
-        else if (week === nowWeek - 1) label = 'Last Week';
-        
-        groups.push({ type: 'header', label, week });
-      }
-      groups.push({ type: 'item', data: trend });
-    });
-    return groups;
+    return groupTrendsByDate(trends);
   }, [trends]);
 
   const handleToggleTrend = async (id) => {
@@ -119,6 +148,18 @@ const Dashboard = () => {
     }
   };
 
+  const handleReset = async () => {
+    setShowResetDialog(false);
+    try {
+      await axios.post(`${API_URL}/newsletters/active-draft/clear`);
+      showFeedback('Selection cleared', 'success');
+      setSelectedTrends([]);
+    } catch (error) {
+      console.error('Error clearing draft:', error);
+      showFeedback('Failed to clear selection.', 'error');
+    }
+  };
+
   const handleCreateDraftClick = () => {
     const duplicates = trends.filter(t => selectedTrends.includes(t.id) && t.status === 'sent');
     if (duplicates.length > 0) {
@@ -144,21 +185,9 @@ const Dashboard = () => {
     }
   };
 
-  const handleCollect = async () => {
-    setCollecting(true);
-    try {
-      await axios.post(`${API_URL}/trends/collect`);
-      showFeedback('Data collection started...', 'info');
-    } catch (error) {
-      console.error('Error starting collection:', error);
-      if (error.response?.status === 409) {
-        showFeedback('Collection already in progress.', 'warning');
-      } else {
-        showFeedback('Failed to start collection.', 'error');
-      }
-    } finally {
-      setCollecting(false);
-    }
+  const handleCategoryChange = (ids) => {
+    setSelectedCategoryIds(ids);
+    fetchTrends(true, ids);
   };
 
   return (
@@ -167,14 +196,22 @@ const Dashboard = () => {
         title="Curator Dashboard" 
         action={
           <div style={{ display: 'flex', gap: '10px' }}>
-            <Button
+             <Button
               variant="outlined"
-              color="secondary"
-              onClick={handleCollect}
-              disabled={collecting}
+              color="warning"
+              onClick={() => setShowResetDialog(true)}
+              disabled={selectedTrends.length === 0}
             >
-              {collecting ? <CircularProgress size={24} /> : 'Collect Now'}
+              Reset Selection
             </Button>
+            <CollectButton 
+              variant="outlined" 
+              color="secondary" 
+              onComplete={() => {
+                fetchTrends(true);
+                showFeedback('Collection complete. Trends updated.', 'success');
+              }}
+            />
             <Button 
               variant="contained" 
               color="primary" 
@@ -186,40 +223,45 @@ const Dashboard = () => {
           </div>
         }
       />
+
+      <Box sx={{ mb: 3 }}>
+        <TagFilter 
+          categories={categories} 
+          selectedIds={selectedCategoryIds} 
+          onChange={handleCategoryChange} 
+        />
+      </Box>
       
-      {loading ? (
+      {groupedTrends.map((group, index) => {
+          const isLastGroup = index === groupedTrends.length - 1;
+          return (
+            <div key={group.date} ref={isLastGroup ? lastTrendElementRef : null}>
+              <DailyGroup 
+                date={group.date} 
+                items={group.items} 
+                selectedTrends={selectedTrends}
+                onToggleTrend={handleToggleTrend}
+              />
+            </div>
+          );
+      })}
+      
+      {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
-      ) : (
-        <Grid container spacing={3}>
-          {groupedTrends.map((node, index) => {
-            if (node.type === 'header') {
-              return (
-                <Grid size={{ xs: 12 }} key={`header-${node.week}-${index}`} sx={{ mt: 2 }}>
-                  <Typography variant="h5" color="primary" gutterBottom>
-                    {node.label}
-                  </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                </Grid>
-              );
-            }
-            const trend = node.data;
-            return (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={trend.id}>
-                <TrendCard
-                  title={trend.title}
-                  summary={trend.summary || 'No summary available.'}
-                  source={trend.source_name || 'Unknown Source'}
-                  date={new Date(trend.published_at).toLocaleDateString()}
-                  isSelected={selectedTrends.includes(trend.id)}
-                  onToggle={() => handleToggleTrend(trend.id)}
-                  status={trend.status}
-                />
-              </Grid>
-            );
-          })}
-        </Grid>
+      )}
+      
+      {!hasMore && !loading && trends.length > 0 && (
+         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <DialogContentText>No more trends to load.</DialogContentText>
+         </Box>
+      )}
+      
+      {!loading && trends.length === 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+           <DialogContentText>No trends found. Try collecting new data or changing filters.</DialogContentText>
+        </Box>
       )}
 
       <Dialog
@@ -239,6 +281,26 @@ const Dashboard = () => {
           </Button>
           <Button onClick={executeCreateDraft} color="primary" variant="contained" autoFocus>
             Yes, Include Them
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+       <Dialog
+        open={showResetDialog}
+        onClose={() => setShowResetDialog(false)}
+      >
+        <DialogTitle>Reset Selection?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+             Are you sure you want to clear the current draft selection? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowResetDialog(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleReset} color="warning" variant="contained" autoFocus>
+            Confirm
           </Button>
         </DialogActions>
       </Dialog>

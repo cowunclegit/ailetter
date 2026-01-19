@@ -1,0 +1,66 @@
+openapi: 3.0.0
+info:
+  title: AILetter API - Collection
+  version: 1.0.0
+paths:
+  /api/trends/collect:
+    post:
+      summary: Trigger manual collection
+      description: Starts the background collection process if not already running.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date
+                  description: Optional start date filter
+                endDate:
+                  type: string
+                  format: date
+                  description: Optional end date filter
+      responses:
+        '202':
+          description: Collection started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "started"
+        '409':
+          description: Collection already in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  
+  /api/trends/collect/status:
+    get:
+      summary: Check collection status
+      description: Returns the running status of the collection process.
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+          description: Optional date key used in the POST request (defaults to 'auto')
+      responses:
+        '200':
+          description: Status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isCollecting:
+                    type: boolean
+                    description: True if collection is currently running

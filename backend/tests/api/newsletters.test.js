@@ -13,6 +13,8 @@ function runAsync(sql, params = []) {
 
 describe('POST /newsletters', () => {
     beforeEach(async () => {
+        // Seed a source first
+        await runAsync("INSERT OR IGNORE INTO sources (id, name, type, url) VALUES (1, 'Test Source', 'rss', 'http://test.com/rss')");
         // Seed some trend items
         await runAsync("INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES (101, 1, 'Test Trend', 'http://test.com/101', '2026-01-10')");
     });
@@ -20,6 +22,7 @@ describe('POST /newsletters', () => {
     afterEach(async () => {
         await runAsync("DELETE FROM newsletter_items");
         await runAsync("DELETE FROM newsletters");
+        await runAsync("DELETE FROM trend_item_tags");
         await runAsync("DELETE FROM trend_items");
     });
 
@@ -67,6 +70,7 @@ describe('PUT /newsletters/:id/reorder', () => {
   afterEach(async () => {
     await runAsync("DELETE FROM newsletter_items");
     await runAsync("DELETE FROM newsletters");
+    await runAsync("DELETE FROM trend_item_tags");
     await runAsync("DELETE FROM trend_items");
   });
 
@@ -179,8 +183,11 @@ describe('GET /newsletters/active-draft', () => {
 
 describe('POST /newsletters/active-draft/toggle-item', () => {
   beforeEach(async () => {
+    await runAsync("DELETE FROM newsletter_items");
+    await runAsync("DELETE FROM trend_item_tags");
     await runAsync("DELETE FROM trend_items");
     await runAsync("DELETE FROM newsletters");
+    await runAsync("INSERT OR IGNORE INTO sources (id, name, type, url) VALUES (1, 'Test Source', 'rss', 'http://test.com/rss')");
     await runAsync("INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES (301, 1, 'T301', 'http://t301.com', '2026-01-10')");
     await runAsync("INSERT INTO newsletters (id, issue_date, status) VALUES (30, '2026-01-13', 'draft')");
   });
@@ -224,6 +231,43 @@ describe('POST /newsletters/active-draft/toggle-item', () => {
     const res = await request(app)
       .post('/api/newsletters/active-draft/toggle-item')
       .send({ item_id: 303 });
+    expect(res.statusCode).toEqual(404);
+  });
+});
+
+describe('POST /newsletters/active-draft/clear', () => {
+  beforeEach(async () => {
+    await runAsync("DELETE FROM trend_item_tags");
+    await runAsync("DELETE FROM trend_items");
+    await runAsync("DELETE FROM newsletters");
+    await runAsync("DELETE FROM newsletter_items");
+    await runAsync("INSERT OR IGNORE INTO sources (id, name, type, url) VALUES (1, 'Test Source', 'rss', 'http://test.com/rss')");
+    await runAsync("INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES (401, 1, 'T401', 'http://t401.com', '2026-01-10'), (402, 1, 'T402', 'http://t402.com', '2026-01-10')");
+    await runAsync("INSERT INTO newsletters (id, issue_date, status) VALUES (40, '2026-01-14', 'draft')");
+  });
+
+  it('should clear all items from the active draft', async () => {
+    // 1. Add items to draft
+    await runAsync("INSERT INTO newsletter_items (newsletter_id, trend_item_id, display_order) VALUES (40, 401, 0), (40, 402, 1)");
+
+    // 2. Call clear endpoint
+    const res = await request(app).post('/api/newsletters/active-draft/clear');
+    
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toBe('Draft cleared');
+
+    // 3. Verify DB is empty for this newsletter
+    const rows = await new Promise((res) => {
+      db.all("SELECT * FROM newsletter_items WHERE newsletter_id = 40", (err, rows) => res(rows));
+    });
+    expect(rows.length).toBe(0);
+  });
+
+  it('should return 404 if no active draft exists', async () => {
+    await runAsync("DELETE FROM newsletters WHERE status = 'draft'");
+    
+    const res = await request(app).post('/api/newsletters/active-draft/clear');
+    
     expect(res.statusCode).toEqual(404);
   });
 });

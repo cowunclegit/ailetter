@@ -1,36 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Weekly Trends</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= (typeof subject !== 'undefined' && subject) ? subject : 'AI Weekly Trends' %></title>
 </head>
-<body style="font-family: sans-serif;">
-    <h1>AI Weekly Trends</h1>
-    <p>Here are your curated trends for the week:</p>
-    <ul>
-        <% items.forEach(function(item) { %>
-            <li style="margin-bottom: 20px; list-style: none;">
-                <% if (item.thumbnail_url) { %>
-                    <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 200px; height: auto; display: block; margin-bottom: 5px; border-radius: 4px;">
-                <% } %>
-                <a href="<%= item.original_url %>" style="font-size: 18px; font-weight: bold; text-decoration: none; color: #007bff;">
-                    <%= item.title %>
-                </a>
-                <p style="margin: 5px 0; color: #666;"><%= item.summary %></p>
-            </li>
-        <% }); %>
-    </ul>
-    <hr>
-    <% if (typeof confirmation_uuid !== 'undefined' && confirmation_uuid) { %>
-        <div style="background: #f0f0f0; padding: 20px; text-align: center; border: 1px solid #ccc;">
-            <p><strong>Curator Preview</strong></p>
-            <p>If this looks good, click the link below to send to all subscribers:</p>
-            <a href="http://localhost:3000/api/newsletters/confirm/<%= confirmation_uuid %>" 
-               style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-               Confirm and Send to All
-            </a>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f7;">
+    <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        
+        <div style="padding: 30px 20px;">
+            <% if (typeof introduction_html !== 'undefined' && introduction_html) { %>
+                <div style="margin-bottom: 25px; font-size: 16px;">
+                    <%- introduction_html %>
+                </div>
+            <% } else { %>
+                <p style="font-size: 16px; margin-bottom: 25px;">Hello! Here are the most significant AI trends we've curated for you this week:</p>
+            <% } %>
+            
+            <% items.forEach(function(item) { %>
+                <div style="margin-bottom: 35px; border-bottom: 1px solid #eee; padding-bottom: 20px;">
+                    <% if (item.thumbnail_url) { %>
+                        <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 6px; margin-bottom: 15px;">
+                    <% } %>
+                    <h2 style="margin: 0 0 10px; font-size: 20px;">
+                        <a href="<%= item.original_url %>" style="text-decoration: none; color: #1976d2;">
+                            <%= item.title %>
+                        </a>
+                    </h2>
+                    <p style="margin: 0; color: #666; font-size: 15px;">
+                        <%= item.summary %>
+                    </p>
+                    <div style="margin-top: 12px;">
+                        <a href="<%= item.original_url %>" style="display: inline-block; font-size: 14px; font-weight: bold; color: #1976d2; text-decoration: none;">Read more &rarr;</a>
+                    </div>
+                </div>
+            <% }); %>
+
+            <% if (typeof conclusion_html !== 'undefined' && conclusion_html) { %>
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed #eee; font-size: 16px;">
+                    <%- conclusion_html %>
+                </div>
+            <% } %>
+
+            <% if (typeof confirmation_uuid !== 'undefined' && confirmation_uuid) { %>
+                <div style="background: #fff9c4; padding: 25px; text-align: center; border: 2px dashed #fbc02d; border-radius: 8px; margin-top: 20px;">
+                    <h3 style="margin: 0 0 10px; color: #f57f17;">Curator Approval Required</h3>
+                    <p style="margin: 0 0 20px; font-size: 14px;">This is a test preview. If the content and layout are correct, please confirm to send to all subscribers.</p>
+                    <a href="http://localhost:3000/api/newsletters/confirm/<%= confirmation_uuid %>" 
+                       style="background-color: #2e7d32; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
+                       Confirm and Send to All
+                    </a>
+                </div>
+            <% } %>
         </div>
-        <hr>
-    <% } %>
-    <p><a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>">Unsubscribe</a></p>
+
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+            <p style="margin: 0; font-size: 12px; color: #999;">
+                &copy; 2026 AILetter. All rights reserved.
+            </p>
+            <p style="margin: 5px 0 0; font-size: 12px;">
+                <a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>" style="color: #999;">Unsubscribe from this list</a>
+            </p>
+        </div>
+    </div>
 </body>
 </html>

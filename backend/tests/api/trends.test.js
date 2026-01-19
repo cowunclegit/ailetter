@@ -64,6 +64,8 @@ describe('GET /trends', () => {
     expect(titles).toContain('Recent Trend');
     expect(titles).not.toContain('Old Trend');
     expect(res.body[0]).toHaveProperty('status');
+    // Expect thumbnail_url to be present (even if null)
+    expect(res.body[0]).toHaveProperty('thumbnail_url');
   });
 });
 

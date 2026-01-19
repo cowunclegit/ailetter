@@ -74,6 +74,9 @@ class NewsletterModel {
             id: rows[0].id,
             issue_date: rows[0].issue_date,
             status: rows[0].status,
+            subject: rows[0].subject,
+            introduction_html: rows[0].introduction_html,
+            conclusion_html: rows[0].conclusion_html,
             confirmation_uuid: rows[0].confirmation_uuid,
             created_at: rows[0].created_at,
             sent_at: rows[0].sent_at,
@@ -94,6 +97,11 @@ class NewsletterModel {
   }
 
   static async updateItemOrder(id, itemOrders) {
+    const newsletter = await this.getById(id);
+    if (!newsletter || newsletter.status !== 'draft') {
+      throw new Error('Newsletter is not in draft status and cannot be edited.');
+    }
+
     return new Promise((resolve, reject) => {
       db.serialize(() => {
         db.run("BEGIN TRANSACTION;");
@@ -117,6 +125,11 @@ class NewsletterModel {
   }
 
   static async toggleItem(newsletterId, trendItemId) {
+    const newsletter = await this.getById(newsletterId);
+    if (!newsletter || newsletter.status !== 'draft') {
+      throw new Error('Newsletter is not in draft status and cannot be edited.');
+    }
+
     return new Promise((resolve, reject) => {
       db.serialize(() => {
         db.run("BEGIN TRANSACTION;");
@@ -177,6 +190,76 @@ class NewsletterModel {
     });
   }
 
+  static async removeItem(newsletterId, trendItemId) {
+    const newsletter = await this.getById(newsletterId);
+    if (!newsletter || newsletter.status !== 'draft') {
+      throw new Error('Newsletter is not in draft status or not found.');
+    }
+
+    return new Promise((resolve, reject) => {
+      db.run(
+        "DELETE FROM newsletter_items WHERE newsletter_id = ? AND trend_item_id = ?",
+        [newsletterId, trendItemId],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.changes > 0);
+        }
+      );
+    });
+  }
+
+  static async updateDraftContent(id, content) {
+    const { subject, introduction_html, conclusion_html } = content;
+    const newsletter = await this.getById(id);
+    if (!newsletter || newsletter.status !== 'draft') {
+      throw new Error('Newsletter is not in draft status or not found.');
+    }
+
+    return new Promise((resolve, reject) => {
+      const updates = [];
+      const params = [];
+
+      if (subject !== undefined) {
+        updates.push("subject = ?");
+        params.push(subject);
+      }
+      if (introduction_html !== undefined) {
+        updates.push("introduction_html = ?");
+        params.push(introduction_html);
+      }
+      if (conclusion_html !== undefined) {
+        updates.push("conclusion_html = ?");
+        params.push(conclusion_html);
+      }
+
+      if (updates.length === 0) return resolve(true);
+
+      params.push(id);
+      db.run(
+        `UPDATE newsletters SET ${updates.join(', ')} WHERE id = ?`,
+        params,
+        function (err) {
+          if (err) reject(err);
+          else resolve(true);
+        }
+      );
+    });
+  }
+
+  static async clearItems(newsletterId) {
+    const newsletter = await this.getById(newsletterId);
+    if (!newsletter || newsletter.status !== 'draft') {
+      throw new Error('Newsletter is not in draft status and cannot be edited.');
+    }
+
+    return new Promise((resolve, reject) => {
+      db.run("DELETE FROM newsletter_items WHERE newsletter_id = ?", [newsletterId], function(err) {
+        if (err) reject(err);
+        else resolve(true);
+      });
+    });
+  }
+
   static async updateConfirmationUuid(id, uuid) {
     return new Promise((resolve, reject) => {
       db.run(
@@ -226,49 +309,37 @@ class NewsletterModel {
 
   static async confirmAndSend(uuid) {
     return new Promise((resolve, reject) => {
-      db.serialize(() => {
-        db.run("BEGIN TRANSACTION;");
+      // 1. First find the newsletter to check TTL and exists
+      db.get(
+        "SELECT id, status, created_at FROM newsletters WHERE confirmation_uuid = ?",
+        [uuid],
+        (err, row) => {
+          if (err) return reject(err);
+          if (!row) return resolve({ error: 'not_found' });
+          if (row.status !== 'draft') return resolve({ error: 'already_processed' });
 
-        db.get(
-          "SELECT id, status, created_at FROM newsletters WHERE confirmation_uuid = ?",
-          [uuid],
-          (err, row) => {
-            if (err) {
-              db.run("ROLLBACK;");
-              return reject(err);
-            }
-            if (!row) {
-              db.run("ROLLBACK;");
-              return resolve({ error: 'not_found' });
-            }
-            if (row.status !== 'draft') {
-              db.run("ROLLBACK;");
-              return resolve({ error: 'already_processed' });
-            }
-
-            // Expiration check (24h)
-            const created = new Date(row.created_at);
-            const now = new Date();
-            if (now - created > 24 * 60 * 60 * 1000) {
-              db.run("ROLLBACK;");
-              return resolve({ error: 'expired' });
-            }
-
-            db.run(
-              "UPDATE newsletters SET status = 'sending' WHERE id = ?",
-              [row.id],
-              (err) => {
-                if (err) {
-                  db.run("ROLLBACK;");
-                  return reject(err);
-                }
-                db.run("COMMIT;");
-                resolve({ id: row.id });
-              }
-            );
+          // Expiration check (24h)
+          const created = new Date(row.created_at);
+          const now = new Date();
+          if (now - created > 24 * 60 * 60 * 1000) {
+            return resolve({ error: 'expired' });
           }
-        );
-      });
+
+          // 2. Atomic update: only update if status is still 'draft'
+          db.run(
+            "UPDATE newsletters SET status = 'sending' WHERE id = ? AND status = 'draft'",
+            [row.id],
+            function (err) {
+              if (err) return reject(err);
+              if (this.changes === 0) {
+                // Someone else updated it between our SELECT and UPDATE
+                return resolve({ error: 'already_processed' });
+              }
+              resolve({ id: row.id });
+            }
+          );
+        }
+      );
     });
   }
 

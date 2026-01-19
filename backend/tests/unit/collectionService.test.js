@@ -52,4 +52,25 @@ describe('CollectionService Locking', () => {
 
     await promise1;
   });
+
+  describe('Category Mapping', () => {
+    it('should map source categories to trend items', async () => {
+      const mockSources = [
+        { id: 1, name: 'S1', type: 'rss', url: 'u1', category_ids: [10, 20] }
+      ];
+      const mockRssItems = [
+        { title: 'T1', original_url: 'u1/1', published_at: '2026-01-18' }
+      ];
+
+      SourceModel.getAll.mockResolvedValue(mockSources);
+      service.fetchRss = jest.fn().mockResolvedValue(mockRssItems);
+      
+      await service.collectAll();
+
+      expect(TrendItemModel.create).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'T1',
+        categoryIds: [10, 20]
+      }));
+    });
+  });
 });

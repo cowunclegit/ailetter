@@ -11,6 +11,7 @@ const Navbar = () => {
         </Typography>
         <Button color="inherit" component={RouterLink} to="/">Home</Button>
         <Button color="inherit" component={RouterLink} to="/sources">Sources</Button>
+        <Button color="inherit" component={RouterLink} to="/categories">Categories</Button>
         <Button color="inherit" component={RouterLink} to="/history">History</Button>
       </Toolbar>
     </AppBar>

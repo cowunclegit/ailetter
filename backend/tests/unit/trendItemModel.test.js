@@ -11,6 +11,7 @@ describe('TrendItem Model Status', () => {
     afterEach(async () => {
         await new Promise((res) => db.run("DELETE FROM newsletter_items", res));
         await new Promise((res) => db.run("DELETE FROM newsletters", res));
+        await new Promise((res) => db.run("DELETE FROM trend_item_tags", res));
         await new Promise((res) => db.run("DELETE FROM trend_items", res));
     });
 
@@ -45,5 +46,64 @@ describe('TrendItem Model Status', () => {
         
         const trends = await TrendItemModel.getAll();
         expect(trends.find(t => t.id === 99)).toBeUndefined(); // Should be filtered out by 28-day default
+    });
+
+    it('supports pagination with limit and offset', async () => {
+        // Insert enough items to test pagination
+        await new Promise((res) => db.run(`
+            INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES 
+            (101, 1, 'T1', 'u1', '2026-01-18T10:00:00Z'),
+            (102, 1, 'T2', 'u2', '2026-01-18T09:00:00Z'),
+            (103, 1, 'T3', 'u3', '2026-01-18T08:00:00Z'),
+            (104, 1, 'T4', 'u4', '2026-01-18T07:00:00Z'),
+            (105, 1, 'T5', 'u5', '2026-01-18T06:00:00Z')
+        `, res));
+
+        const page1 = await TrendItemModel.getAll({ limit: 2, offset: 0, startDate: '2026-01-15' });
+        expect(page1).toHaveLength(2);
+        expect(page1[0].id).toBe(101); // Most recent due to ORDER BY published_at DESC
+
+        const page2 = await TrendItemModel.getAll({ limit: 2, offset: 2, startDate: '2026-01-15' });
+        expect(page2).toHaveLength(2);
+        expect(page2[0].id).toBe(103);
+        
+        const page3 = await TrendItemModel.getAll({ limit: 2, offset: 4, startDate: '2026-01-15' });
+        expect(page3).toHaveLength(1);
+        expect(page3[0].id).toBe(105);
+    });
+
+    describe('Tagging and Filtering', () => {
+        beforeEach(async () => {
+            await new Promise((res) => db.run("INSERT OR IGNORE INTO categories (id, name) VALUES (1, 'AI'), (2, 'Tech')", res));
+        });
+
+        it('creates a trend item with tags', async () => {
+            const item = {
+                source_id: 1,
+                title: 'Tagged Trend',
+                original_url: 'http://tagged.com',
+                published_at: '2026-01-18T12:00:00Z',
+                categoryIds: [1, 2]
+            };
+            const saved = await TrendItemModel.create(item);
+            expect(saved.id).toBeDefined();
+
+            const tags = await new Promise((res) => db.all("SELECT category_id FROM trend_item_tags WHERE trend_item_id = ?", [saved.id], (err, rows) => res(rows)));
+            expect(tags.map(t => t.category_id)).toContain(1);
+            expect(tags.map(t => t.category_id)).toContain(2);
+        });
+
+        it('filters trend items by categoryIds', async () => {
+            await new Promise((res) => db.run("INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES (50, 1, 'AI Trend', 'u50', '2026-01-18'), (51, 1, 'Tech Trend', 'u51', '2026-01-18')", res));
+            await new Promise((res) => db.run("INSERT INTO trend_item_tags (trend_item_id, category_id) VALUES (50, 1), (51, 2)", res));
+
+            const aiTrends = await TrendItemModel.getAll({ categoryIds: [1] });
+            expect(aiTrends.some(t => t.id === 50)).toBe(true);
+            expect(aiTrends.some(t => t.id === 51)).toBe(false);
+
+            const bothTrends = await TrendItemModel.getAll({ categoryIds: [1, 2] });
+            expect(bothTrends.some(t => t.id === 50)).toBe(true);
+            expect(bothTrends.some(t => t.id === 51)).toBe(true);
+        });
     });
 });

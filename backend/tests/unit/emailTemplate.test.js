@@ -8,7 +8,7 @@ describe('Email Template', () => {
     ];
     const token = 'test-token';
     const html = generateNewsletterHtml(items, token);
-    expect(html).toContain('<h1>AI Weekly Trends</h1>');
+    expect(html).toContain('AI Weekly Trends');
     expect(html).toContain('Item 1');
     expect(html).toContain('http://b.com');
     expect(html).toContain('?token=test-token');

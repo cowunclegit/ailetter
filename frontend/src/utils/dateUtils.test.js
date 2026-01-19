@@ -44,6 +44,15 @@ describe('dateUtils', () => {
   });
 
   describe('getLastNWeeks', () => {
+    beforeAll(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-01-13T12:00:00Z'));
+    });
+
+    afterAll(() => {
+      jest.useRealTimers();
+    });
+
     it('generates 12 weeks of history', () => {
       const weeks = getLastNWeeks(12);
       expect(weeks).toHaveLength(12);

@@ -1,0 +1,110 @@
+openapi: 3.0.0
+info:
+  title: Newsletter Draft API
+  version: 1.0.0
+paths:
+  /api/newsletters/{id}:
+    get:
+      summary: Get newsletter draft details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Newsletter details including subject, intro, and outro.
+    put:
+      summary: Update newsletter draft content
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                introduction_html:
+                  type: string
+                conclusion_html:
+                  type: string
+      responses:
+        '200':
+          description: Updated successfully
+
+  /api/newsletters/{id}/reorder:
+    put:
+      summary: Reorder newsletter items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item_orders:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      trend_item_id:
+                        type: integer
+                      display_order:
+                        type: integer
+      responses:
+        '200':
+          description: Order updated
+
+  /api/newsletters/{id}/items/{trendItemId}:
+    delete:
+      summary: Remove an item from the newsletter draft
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: trendItemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Item removed
+
+  /api/newsletters/{id}/ai-recommend-subject:
+    post:
+      summary: Get AI recommended subject line
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_subject:
+                  type: string
+      responses:
+        '200':
+          description: Suggested subject
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggested_subject:
+                    type: string

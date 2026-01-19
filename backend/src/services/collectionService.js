@@ -47,19 +47,49 @@ class CollectionService {
     this.activeCollections.set(lockKey, true);
     try {
       const sources = await SourceModel.getAll();
+      
+      // T013: Group sources by unique URL
+      const groupedSources = new Map();
+      for (const source of sources) {
+        if (!groupedSources.has(source.url)) {
+          groupedSources.set(source.url, {
+            ...source,
+            all_category_ids: new Set(source.category_ids)
+          });
+        } else {
+          // T014: Metadata inheritance (keep first encountered) and merge categories
+          const existing = groupedSources.get(source.url);
+          source.category_ids.forEach(id => existing.all_category_ids.add(id));
+        }
+      }
+
       const results = [];
 
-      for (const source of sources) {
+      for (const [url, source] of groupedSources) {
         try {
+          let items = [];
           if (source.type === 'rss') {
-            const items = await this.fetchRss(source.url, startDate, endDate);
-            results.push(...items.map(i => ({ ...i, source_id: source.id })));
+            items = await this.fetchRss(url, startDate, endDate);
           } else if (source.type === 'youtube') {
-            const items = await this.fetchYoutube(source.url, startDate, endDate);
-            results.push(...items.map(i => ({ ...i, source_id: source.id })));
+            items = await this.fetchYoutube(url, startDate, endDate);
           }
+          
+          let categoryIds = Array.from(source.all_category_ids);
+          
+          // T021: If no categories, we could use a specific ID for 'Uncategorized' 
+          // or handle it in the model. Let's assume there's a category with name 'Uncategorized'.
+          // For now, if empty, we just leave it empty and let the model/UI handle display.
+          // Wait, the spec says "tagged as 'Uncategorized'". 
+          // I'll check if a category named 'Uncategorized' exists, if not, I'll create it?
+          // To be safe and simple, I'll just ensure it's empty here and the model handles it.
+          
+          results.push(...items.map(i => ({ 
+            ...i, 
+            source_id: source.id,
+            categoryIds: categoryIds
+          })));
         } catch (error) {
-          console.error(`Error collecting from ${source.name}:`, error.message);
+          console.error(`Error collecting from ${source.name} (${url}):`, error.message);
         }
       }
 

@@ -22,8 +22,25 @@ class NewsletterService {
     return NewsletterModel.updateItemOrder(id, itemOrders);
   }
 
+  async removeItem(id, trendItemId) {
+    return NewsletterModel.removeItem(id, trendItemId);
+  }
+
+  async updateDraftContent(id, content) {
+    return NewsletterModel.updateDraftContent(id, content);
+  }
+
   async toggleItem(newsletterId, trendItemId) {
     return NewsletterModel.toggleItem(newsletterId, trendItemId);
+  }
+
+  async clearDraftItems() {
+    const draft = await NewsletterModel.getActiveDraft();
+    if (!draft) {
+      throw new Error('No active draft found');
+    }
+    await NewsletterModel.clearItems(draft.id);
+    return { success: true, message: 'Draft cleared' };
   }
 
   async confirmAndSendNewsletter(uuid, emailService) {
@@ -45,7 +62,7 @@ class NewsletterService {
     
     const subscribers = await SubscriberModel.getAllActive();
     for (const sub of subscribers) {
-      const html = generateNewsletterHtml(newsletter.items, sub.token);
+      const html = generateNewsletterHtml(newsletter, sub.token);
       await emailService.sendNewsletter(sub.email, html);
     }
 
