@@ -22,12 +22,17 @@ import {
   Typography,
   Button,
   TextField,
-  Paper
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import PageHeader from '../components/common/PageHeader';
 import DraggableItem from '../components/features/DraggableItem';
 import NewsletterPreview from '../components/features/NewsletterPreview';
 import RichTextEditor from '../components/features/RichTextEditor';
+import TemplateGrid from '../components/features/TemplateGrid';
 import { useFeedback } from '../contexts/FeedbackContext';
 
 const API_URL = '/api';
@@ -36,6 +41,10 @@ const NewsletterDraft = () => {
   const { id } = useParams();
   const [newsletter, setNewsletter] = useState(null);
   const [items, setItems] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [templateId, setTemplateId] = useState('classic-list');
+  const [aiPresets, setAiPresets] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
   const [subject, setSubject] = useState('');
   const [introductionHtml, setIntroductionHtml] = useState('');
   const [conclusionHtml, setConclusionHtml] = useState('');
@@ -54,6 +63,8 @@ const NewsletterDraft = () => {
 
   useEffect(() => {
     fetchNewsletter();
+    fetchTemplates();
+    fetchAiPresets();
     fetchPreview();
   }, [id]);
 
@@ -63,6 +74,7 @@ const NewsletterDraft = () => {
       const response = await axios.get(`${API_URL}/newsletters/${id}`);
       setNewsletter(response.data);
       setItems(response.data.items);
+      setTemplateId(response.data.template_id || 'classic-list');
       setSubject(response.data.subject || '');
       setIntroductionHtml(response.data.introduction_html || '');
       setConclusionHtml(response.data.conclusion_html || '');
@@ -74,13 +86,56 @@ const NewsletterDraft = () => {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/templates`);
+      setTemplates(response.data);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  const fetchAiPresets = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/ai-presets`);
+      setAiPresets(response.data);
+      if (response.data.length > 0) {
+        // Find first default or just first
+        const defaultPreset = response.data.find(p => p.is_default === 1) || response.data[0];
+        setSelectedPresetId(defaultPreset.id);
+      }
+    } catch (error) {
+      console.error('Error fetching AI presets:', error);
+    }
+  };
+
+  const handleTemplateSelect = async (newId) => {
+    setTemplateId(newId);
+    try {
+      await axios.put(`${API_URL}/newsletters/${id}`, { 
+        template_id: newId
+      });
+      showFeedback('Template updated', 'success');
+      fetchPreview();
+    } catch (error) {
+      console.error('Error updating template:', error);
+      showFeedback('Failed to update template.', 'error');
+    }
+  };
+
   const handleSubjectChange = (e) => {
     setSubject(e.target.value);
   };
 
   const handleAIRecommend = async () => {
+    if (!selectedPresetId) {
+      showFeedback('Please select an AI preset first.', 'warning');
+      return;
+    }
+
     try {
       const response = await axios.post(`${API_URL}/newsletters/${id}/ai-recommend-subject`, {
+        preset_id: selectedPresetId,
         current_subject: subject
       });
       const newSubject = response.data.suggested_subject;
@@ -200,23 +255,42 @@ const NewsletterDraft = () => {
       
       <Box sx={{ mt: 4, mb: 4 }}>
         <Paper sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-              label="Subject"
-              variant="outlined"
-              fullWidth
-              value={subject}
-              onChange={handleSubjectChange}
-              onBlur={saveDraftContent}
-              placeholder="Newsletter Subject"
-            />
-            <Button 
-              variant="outlined" 
-              onClick={handleAIRecommend}
-              sx={{ whiteSpace: 'nowrap', height: '56px' }}
-            >
-              AI Recommend
-            </Button>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <TextField
+                label="Subject"
+                variant="outlined"
+                fullWidth
+                value={subject}
+                onChange={handleSubjectChange}
+                onBlur={saveDraftContent}
+                placeholder="Newsletter Subject"
+              />
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FormControl sx={{ minWidth: 200 }} size="small">
+                <InputLabel>AI Preset</InputLabel>
+                <Select
+                  value={selectedPresetId}
+                  label="AI Preset"
+                  onChange={(e) => setSelectedPresetId(e.target.value)}
+                >
+                  {aiPresets.map((preset) => (
+                    <MenuItem key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Button 
+                variant="outlined" 
+                onClick={handleAIRecommend}
+                sx={{ whiteSpace: 'nowrap', height: '40px' }}
+                disabled={aiPresets.length === 0}
+              >
+                AI Recommend
+              </Button>
+            </Box>
           </Box>
         </Paper>
       </Box>
@@ -274,6 +348,12 @@ const NewsletterDraft = () => {
           </Button>
         </Box>
       </Box>
+
+      <TemplateGrid 
+        templates={templates} 
+        selectedId={templateId} 
+        onSelect={handleTemplateSelect} 
+      />
 
       <NewsletterPreview 
         subject={subject}

@@ -28,6 +28,9 @@ const Layout = ({ children }) => {
             <Button color="inherit" component={RouterLink} to="/history">
               History
             </Button>
+            <Button color="inherit" component={RouterLink} to="/settings">
+              Settings
+            </Button>
           </Box>
         </Toolbar>
       </AppBar>

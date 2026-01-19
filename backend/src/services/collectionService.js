@@ -1,6 +1,7 @@
 const Parser = require('rss-parser');
 const { google } = require('googleapis');
 const axios = require('axios');
+const he = require('he');
 const metascraper = require('metascraper')([
   require('metascraper-image')()
 ]);
@@ -128,10 +129,10 @@ class CollectionService {
     const enrichedItems = await Promise.all(filteredItems.map(async (item) => {
       const thumbnailUrl = await this.extractThumbnail(item.link);
       return {
-        title: item.title,
+        title: he.decode(item.title || ''),
         original_url: item.link,
         published_at: new Date(item.pubDate).toISOString(),
-        summary: item.contentSnippet || item.content,
+        summary: he.decode(item.contentSnippet || item.content || ''),
         thumbnail_url: thumbnailUrl
       };
     }));
@@ -169,10 +170,10 @@ class CollectionService {
         return pubDate >= start && pubDate <= end;
       })
       .map(item => ({
-        title: item.snippet.title,
+        title: he.decode(item.snippet.title),
         original_url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
         published_at: item.snippet.publishedAt,
-        summary: item.snippet.description,
+        summary: he.decode(item.snippet.description),
         thumbnail_url: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url
       }));
   }

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= (typeof subject !== 'undefined' && subject) ? subject : 'AI Weekly Trends' %></title>
+</head>
+<body style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.5; color: #222; margin: 0; padding: 0; background-color: #f0f0f0;">
+    <div style="max-width: 650px; margin: 20px auto; background: #ffffff; padding: 40px;">
+        <div style="text-align: center; border-bottom: 4px double #000; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 36px; font-weight: 900; text-transform: uppercase;">THE AI GAZETTE</h1>
+            <p style="margin: 5px 0 0; font-style: italic; color: #666;">Vol. 2026 &bull; Issue No. 19</p>
+        </div>
+
+        <% if (typeof introduction_html !== 'undefined' && introduction_html) { %>
+            <div style="margin-bottom: 30px; font-size: 16px; columns: 2; column-gap: 30px;">
+                <%- introduction_html %>
+            </div>
+        <% } %>
+        
+        <% items.forEach(function(item, index) { %>
+            <div style="margin-bottom: 40px; clear: both; overflow: hidden;">
+                <% if (index % 2 === 0) { %>
+                    <% if (item.thumbnail_url) { %>
+                        <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 250px; float: left; margin-right: 20px; border: 1px solid #ddd; padding: 5px;">
+                    <% } %>
+                    <h2 style="margin: 0 0 10px; font-size: 24px; font-weight: bold;"><a href="<%= item.original_url %>" style="text-decoration: none; color: #000;"><%= item.title %></a></h2>
+                    <p style="margin: 0; font-size: 14px;"><%= item.summary %></p>
+                <% } else { %>
+                    <% if (item.thumbnail_url) { %>
+                        <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 250px; float: right; margin-left: 20px; border: 1px solid #ddd; padding: 5px;">
+                    <% } %>
+                    <h2 style="margin: 0 0 10px; font-size: 24px; font-weight: bold; text-align: right;"><a href="<%= item.original_url %>" style="text-decoration: none; color: #000;"><%= item.title %></a></h2>
+                    <p style="margin: 0; font-size: 14px; text-align: right;"><%= item.summary %></p>
+                <% } %>
+            </div>
+        <% }); %>
+
+        <% if (typeof conclusion_html !== 'undefined' && conclusion_html) { %>
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #000; font-size: 14px;">
+                <%- conclusion_html %>
+            </div>
+        <% } %>
+        
+        <div style="margin-top: 40px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; font-size: 11px;">
+            SUBSCRIBE &bull; FOLLOW &bull; <a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>" style="color: #000;">UNSUBSCRIBE</a>
+        </div>
+    </div>
+</body>
+</html>

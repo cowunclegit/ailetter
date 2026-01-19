@@ -19,6 +19,11 @@ Auto-generated from all feature plans. Last updated: 2026-01-13
 - Node.js (Backend), React.js (Frontend) + Express, SQLite3, axios, uuid, EJS (for email templates) (016-newsletter-confirm-send)
 - Node.js (v18+), React (v19+) + `@dnd-kit/core`, `@mui/material`, `react-quill`, `axios`, `express`, `sqlite3` (017-draft-editor-enhancements)
 - SQLite3 (newsletters table updated with subject, introduction_html, conclusion_html) (017-draft-editor-enhancements)
+- Node.js v18+, React v19 + Express, EJS (templating), @mui/material (UI components), Axios, uuid (018-multi-email-templates)
+- SQLite3 (Updating `newsletters` table) (018-multi-email-templates)
+- Node.js, Reac + Express, Axios, @mui/material, React Router (019-newsletter-history-details)
+- Node.js v18+, React v19 + Express, Axios, @mui/material, SQLite3 (020-ai-subject-options)
+- SQLite3 (New table: `ai_subject_presets`) (020-ai-subject-options)
 
 - Node.js (Backend), React.js (Frontend) + `rss-parser` (RSS), `googleapis` (YouTube), `openai` (LLM), `@sendgrid/mail` (Email), `node-cron` (Scheduling) (001-ai-trend-newsletter)
 
@@ -38,9 +43,9 @@ tests/
 Node.js (Backend), React.js (Frontend): Follow standard conventions
 
 ## Recent Changes
-- 017-draft-editor-enhancements: Added Node.js (v18+), React (v19+) + `@dnd-kit/core`, `@mui/material`, `react-quill`, `axios`, `express`, `sqlite3`
-- 017-draft-editor-enhancements: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-- 016-newsletter-confirm-send: Added Node.js (Backend), React.js (Frontend) + Express, SQLite3, axios, uuid, EJS (for email templates)
+- 020-ai-subject-options: Added Node.js v18+, React v19 + Express, Axios, @mui/material, SQLite3
+- 019-newsletter-history-details: Added Node.js, Reac + Express, Axios, @mui/material, React Router
+- 018-multi-email-templates: Added Node.js v18+, React v19 + Express, EJS (templating), @mui/material (UI components), Axios, uuid
 
 
 

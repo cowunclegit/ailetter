@@ -37,6 +37,8 @@ app.get('/health', (req, res) => {
 
 app.use('/api/trends', trendsRouter);
 app.use('/api/newsletters', require('./api/newsletters'));
+app.use('/api/templates', require('./api/templates'));
+app.use('/api/ai-presets', require('./api/aiPresets'));
 app.use('/api/subscribers', require('./api/subscribers'));
 app.use('/api/sources', require('./api/sources'));
 app.use('/api/categories', require('./api/categories'));

@@ -13,6 +13,8 @@ import CategoryManagement from './pages/CategoryManagement';
 import Public from './pages/Public';
 import NewsletterHistory from './pages/NewsletterHistory';
 import NewsletterDraft from './pages/NewsletterDraft';
+import NewsletterDetails from './pages/NewsletterDetails';
+import Settings from './pages/Settings';
 import DebugPage from './pages/Debug';
 
 function App() {
@@ -24,10 +26,12 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/newsletters/:id" element={<NewsletterDetails />} />
               <Route path="/newsletters/:id/draft" element={<NewsletterDraft />} />
               <Route path="/sources" element={<Sources />} />
               <Route path="/categories" element={<CategoryManagement />} />
               <Route path="/history" element={<NewsletterHistory />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/subscribe" element={<Public />} />
               <Route path="/unsubscribe" element={<Public />} />
               <Route path="/confirmation-success" element={<Public type="success" />} />

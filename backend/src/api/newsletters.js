@@ -106,11 +106,16 @@ router.delete('/:id/items/:trendItemId', async (req, res, next) => {
 });
 
 router.post('/:id/ai-recommend-subject', async (req, res, next) => {
-  const { current_subject } = req.body || {};
+  const { preset_id } = req.body || {};
+  if (!preset_id) return res.status(400).json({ message: 'preset_id is required' });
+
   try {
-    const suggested = (current_subject || '') + ' (AI 추천 제목)';
-    res.json({ suggested_subject: suggested.trim() });
+    const suggested = await newsletterService.generateAiSubject(req.params.id, preset_id);
+    res.json({ suggested_subject: suggested });
   } catch (error) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: error.message });
+    }
     next(error);
   }
 });

@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: Newsletter Details API
+  version: 1.0.0
+paths:
+  /api/newsletters/{id}:
+    get:
+      summary: Get full details of a newsletter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Full newsletter detail with articles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  subject: { type: string }
+                  status: { type: string }
+                  introduction_html: { type: string }
+                  conclusion_html: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title: { type: string }
+                        original_url: { type: string }
+        '404':
+          description: Newsletter not found

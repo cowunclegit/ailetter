@@ -26,7 +26,7 @@ class NewsletterModel {
 
         const issueDate = new Date().toISOString().split('T')[0];
         db.run(
-          "INSERT INTO newsletters (issue_date, status) VALUES (?, 'draft')",
+          "INSERT INTO newsletters (issue_date, status, template_id) VALUES (?, 'draft', 'classic-list')",
           [issueDate],
           function (err) {
             if (err) {
@@ -74,6 +74,7 @@ class NewsletterModel {
             id: rows[0].id,
             issue_date: rows[0].issue_date,
             status: rows[0].status,
+            template_id: rows[0].template_id,
             subject: rows[0].subject,
             introduction_html: rows[0].introduction_html,
             conclusion_html: rows[0].conclusion_html,
@@ -209,7 +210,7 @@ class NewsletterModel {
   }
 
   static async updateDraftContent(id, content) {
-    const { subject, introduction_html, conclusion_html } = content;
+    const { subject, introduction_html, conclusion_html, template_id } = content;
     const newsletter = await this.getById(id);
     if (!newsletter || newsletter.status !== 'draft') {
       throw new Error('Newsletter is not in draft status or not found.');
@@ -230,6 +231,12 @@ class NewsletterModel {
       if (conclusion_html !== undefined) {
         updates.push("conclusion_html = ?");
         params.push(conclusion_html);
+      }
+      if (template_id !== undefined) {
+        const templateService = require('../services/templateService');
+        const validTemplate = templateService.getTemplateById(template_id);
+        updates.push("template_id = ?");
+        params.push(validTemplate.id);
       }
 
       if (updates.length === 0) return resolve(true);

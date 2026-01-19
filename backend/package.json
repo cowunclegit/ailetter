@@ -20,6 +20,7 @@
     "ejs": "^3.1.10",
     "express": "^5.2.1",
     "googleapis": "^170.0.0",
+    "he": "^1.2.0",
     "helmet": "^8.1.0",
     "metascraper": "^5.49.15",
     "metascraper-image": "^5.49.15",

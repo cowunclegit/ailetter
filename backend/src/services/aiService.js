@@ -49,6 +49,27 @@ class AiService {
       return items.slice(0, 20).map(i => i.id);
     }
   }
+
+  resolvePrompt(template, items) {
+    const contentList = items.map(item => `- ${item.title}: ${item.summary || ''}`).join('\n');
+    return template.replace('${contentList}', contentList);
+  }
+
+  async generateSubject(promptTemplate, items) {
+    const resolvedPrompt = this.resolvePrompt(promptTemplate, items);
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        messages: [{ role: 'user', content: resolvedPrompt }],
+        model: 'gpt-3.5-turbo',
+      });
+
+      return completion.choices[0].message.content.trim();
+    } catch (error) {
+      console.error('AI Subject Recommendation Error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = AiService;

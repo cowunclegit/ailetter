@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS newsletters (
   subject TEXT,
   introduction_html TEXT,
   conclusion_html TEXT,
+  template_id TEXT DEFAULT 'classic-list',
   confirmation_uuid TEXT UNIQUE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   sent_at DATETIME
@@ -66,6 +67,14 @@ CREATE TABLE IF NOT EXISTS newsletter_items (
   PRIMARY KEY (newsletter_id, trend_item_id),
   FOREIGN KEY (newsletter_id) REFERENCES newsletters (id),
   FOREIGN KEY (trend_item_id) REFERENCES trend_items (id)
+);
+
+CREATE TABLE IF NOT EXISTS ai_subject_presets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  prompt_template TEXT NOT NULL,
+  is_default BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS subscribers (
