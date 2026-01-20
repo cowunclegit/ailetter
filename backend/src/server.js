@@ -10,11 +10,15 @@ const config = require('./config/env');
 
 const trendsRouter = require('./api/trends');
 const { job } = require('./jobs/collectionJob');
+const { initProxyServer } = require('./services/websocket/proxy-server');
+const { Server } = require('socket.io');
 
 const app = express();
 
 // Serve Let's Encrypt ACME challenges
 app.use('/.well-known/acme-challenge', express.static(path.join(__dirname, '../.well-known/acme-challenge')));
+// Serve Thumbnails
+app.use('/thumbnails', express.static(path.join(__dirname, '../public/thumbnails')));
 
 app.use(cors());
 app.use(helmet({
@@ -65,7 +69,20 @@ if (require.main === module) {
     cert: fs.readFileSync(config.sslCertPath || path.join(__dirname, '../certs/cert.pem'))
   };
 
-  https.createServer(httpsOptions, app).listen(config.port, () => {
+  const server = https.createServer(httpsOptions, app);
+  
+  const io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
+  app.set('io', io);
+  
+  initProxyServer(server, app, io);
+
+  server.listen(config.port, () => {
     console.log(`Server running on port ${config.port} (HTTPS)`);
   });
 }

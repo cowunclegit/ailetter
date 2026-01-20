@@ -51,7 +51,21 @@ class TrendItemModel {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ' GROUP BY t.id ORDER BY t.published_at DESC LIMIT ? OFFSET ?';
+    // Since published_at is stored as RFC 2822 string (e.g. "Tue, 20 Jan 2026..."),
+    // standard alphabetical DESC sort fails (Wed < Tue). 
+    // We use substr and CASE to parse components for a proper chronological sort.
+    const dateSortSql = `
+      substr(t.published_at, 13, 4) DESC, 
+      CASE substr(t.published_at, 9, 3) 
+        WHEN 'Jan' THEN '01' WHEN 'Feb' THEN '02' WHEN 'Mar' THEN '03' WHEN 'Apr' THEN '04' 
+        WHEN 'May' THEN '05' WHEN 'Jun' THEN '06' WHEN 'Jul' THEN '07' WHEN 'Aug' THEN '08' 
+        WHEN 'Sep' THEN '09' WHEN 'Oct' THEN '10' WHEN 'Nov' THEN '11' WHEN 'Dec' THEN '12' 
+      END DESC, 
+      substr(t.published_at, 6, 2) DESC, 
+      substr(t.published_at, 18, 8) DESC
+    `;
+
+    query += ` GROUP BY t.id ORDER BY ${dateSortSql} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
     return new Promise((resolve, reject) => {

@@ -24,6 +24,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-13
 - Node.js, Reac + Express, Axios, @mui/material, React Router (019-newsletter-history-details)
 - Node.js v18+, React v19 + Express, Axios, @mui/material, SQLite3 (020-ai-subject-options)
 - SQLite3 (New table: `ai_subject_presets`) (020-ai-subject-options)
+- Node.js v18+ + `ws` (WebSocket), `express` (Main Backend API), `fs-extra` (Image storage) (021-collect-proxy-service)
+- SQLite3 (Main Backend DB), Local File System (Thumbnails) (021-collect-proxy-service)
 
 - Node.js (Backend), React.js (Frontend) + `rss-parser` (RSS), `googleapis` (YouTube), `openai` (LLM), `@sendgrid/mail` (Email), `node-cron` (Scheduling) (001-ai-trend-newsletter)
 
@@ -43,9 +45,9 @@ tests/
 Node.js (Backend), React.js (Frontend): Follow standard conventions
 
 ## Recent Changes
+- 021-collect-proxy-service: Added Node.js v18+ + `ws` (WebSocket), `express` (Main Backend API), `fs-extra` (Image storage)
 - 020-ai-subject-options: Added Node.js v18+, React v19 + Express, Axios, @mui/material, SQLite3
 - 019-newsletter-history-details: Added Node.js, Reac + Express, Axios, @mui/material, React Router
-- 018-multi-email-templates: Added Node.js v18+, React v19 + Express, EJS (templating), @mui/material (UI components), Axios, uuid
 
 
 

@@ -1,52 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { Button, CircularProgress } from '@mui/material';
+import { Button, CircularProgress, Box, Typography, LinearProgress, Tooltip } from '@mui/material';
 import { trendsApi } from '../api/trendsApi';
 import { useFeedback } from '../contexts/FeedbackContext';
+import { useSocket } from '../contexts/SocketContext';
+import WifiIcon from '@mui/icons-material/Wifi';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
 
 const CollectButton = ({ variant = "contained", color = "primary", onComplete, ...props }) => {
   const [loading, setLoading] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
+  const [proxyConnected, setProxyConnected] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0, message: '' });
   const { showFeedback } = useFeedback();
+  const socket = useSocket();
 
   useEffect(() => {
-    let intervalId;
-    let polls = 0;
-    const maxPolls = 150; // 5 minutes (150 * 2s)
+    if (!socket) return;
 
-    if (isPolling) {
-      intervalId = setInterval(async () => {
-        polls++;
-        if (polls > maxPolls) {
-           clearInterval(intervalId);
-           setIsPolling(false);
-           setLoading(false);
-           showFeedback('Collection timed out (5m). Please check logs.', 'error');
-           return;
-        }
+    const handleProgress = (data) => {
+      const { status, message, current, total } = data;
+      
+      if (status === 'in_progress') {
+        setLoading(true);
+        setProgress({ current: current || 0, total: total || 0, message: message || '' });
+      } else if (status === 'complete') {
+        setLoading(false);
+        setProgress({ current: 0, total: 0, message: '' });
+        showFeedback('Collection complete. Trends updated.', 'success');
+        if (onComplete) onComplete();
+      } else if (status === 'error') {
+        setLoading(false);
+        showFeedback(`Collection error: ${message}`, 'error');
+      }
+    };
 
-        try {
-          const status = await trendsApi.getCollectionStatus();
-          if (!status.isCollecting) {
-            setIsPolling(false);
-            setLoading(false);
-            if (onComplete) onComplete();
-          }
-        } catch (error) {
-          console.error('Polling error:', error);
-          setIsPolling(false);
-          setLoading(false);
-          showFeedback('Error checking collection status.', 'error');
+    const handleProxyStatus = (data) => {
+      setProxyConnected(data.connected);
+    };
+
+    socket.on('collection_progress', handleProgress);
+    socket.on('proxy_status', handleProxyStatus);
+
+    // Request initial status
+    socket.emit('get_proxy_status');
+
+    return () => {
+      socket.off('collection_progress', handleProgress);
+      socket.off('proxy_status', handleProxyStatus);
+    };
+  }, [socket, showFeedback, onComplete]);
+
+  // Initial status check
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await trendsApi.getCollectionStatus();
+        if (status.isCollecting) {
+          setLoading(true);
         }
-      }, 2000);
-    }
-    return () => clearInterval(intervalId);
-  }, [isPolling, onComplete, showFeedback]);
+      } catch (error) {
+        console.error('Error checking status:', error);
+      }
+    };
+    checkStatus();
+  }, []);
 
   const handleClick = async () => {
+    if (!proxyConnected) {
+      showFeedback('Collect Proxy is not connected. Please check service status.', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       await trendsApi.triggerCollection();
-      setIsPolling(true);
       showFeedback('Collection started...', 'info');
     } catch (error) {
       console.error(error);
@@ -58,16 +84,49 @@ const CollectButton = ({ variant = "contained", color = "primary", onComplete, .
     }
   };
 
+  const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+
   return (
-    <Button
-      variant={variant}
-      color={color}
-      onClick={handleClick}
-      disabled={loading}
-      {...props}
-    >
-      {loading ? <CircularProgress size={24} color="inherit" /> : 'Collect Now'}
-    </Button>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Button
+          variant={variant}
+          color={color}
+          onClick={handleClick}
+          disabled={loading || !proxyConnected}
+          sx={{ flexGrow: 1 }}
+          {...props}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Collect Now'}
+        </Button>
+        <Tooltip title={proxyConnected ? "Proxy Connected" : "Proxy Disconnected"}>
+          {proxyConnected ? (
+            <WifiIcon color="success" />
+          ) : (
+            <WifiOffIcon color="error" />
+          )}
+        </Tooltip>
+      </Box>
+      
+      {loading && progress.total > 0 && (
+        <Box sx={{ width: '100%' }}>
+          <LinearProgress variant="determinate" value={progressPercent} />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+            {progress.message} ({progress.current}/{progress.total})
+          </Typography>
+        </Box>
+      )}
+      {loading && progress.total === 0 && (
+         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'center' }}>
+            Initializing collection...
+         </Typography>
+      )}
+      {!proxyConnected && !loading && (
+        <Typography variant="caption" color="error" sx={{ textAlign: 'center' }}>
+          Proxy disconnected - check service
+        </Typography>
+      )}
+    </Box>
   );
 };
 

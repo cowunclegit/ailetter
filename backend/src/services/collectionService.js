@@ -7,6 +7,7 @@ const metascraper = require('metascraper')([
 ]);
 const SourceModel = require('../models/sourceModel');
 const TrendItemModel = require('../models/trendItemModel');
+const { getProxyClient } = require('./websocket/proxy-server');
 
 class CollectionService {
   constructor() {
@@ -45,11 +46,35 @@ class CollectionService {
       return null;
     }
 
-    this.activeCollections.set(lockKey, true);
-    try {
-      const sources = await SourceModel.getAll();
-      
-      // T013: Group sources by unique URL
+          this.activeCollections.set(lockKey, true);
+          try {
+            const proxyClient = getProxyClient();
+    
+          if (proxyClient && proxyClient.readyState === 1) { // 1 = OPEN
+            console.log('Delegating collection to Proxy Service...');
+            const sources = await SourceModel.getAll();
+            
+            // Map sources to what proxy expects
+            const proxySources = sources.map(s => ({
+              id: s.id,
+              url: s.url,
+              type: s.type,
+              category_ids: s.category_ids
+            }));
+    
+            proxyClient.send(JSON.stringify({
+              type: 'START_COLLECTION',
+              payload: {
+                task_id: lockKey, // Using lockKey as task_id
+                sources: proxySources
+              }
+            }));
+    
+            return []; // Return empty array as it's async now
+          }
+    
+          const sources = await SourceModel.getAll();
+          // T013: Group sources by unique URL
       const groupedSources = new Map();
       for (const source of sources) {
         if (!groupedSources.has(source.url)) {
@@ -106,76 +131,9 @@ class CollectionService {
     }
   }
 
-  async fetchRss(url, startDate = null, endDate = null) {
-    const feed = await this.parser.parseURL(url);
-    
-    let start, end;
-    if (startDate && endDate) {
-      start = new Date(startDate);
-      end = new Date(endDate);
-    } else {
-      const today = new Date();
-      start = new Date(today);
-      start.setDate(today.getDate() - 7);
-      end = new Date();
-    }
-
-    const filteredItems = feed.items
-      .filter(item => {
-        const pubDate = new Date(item.pubDate);
-        return pubDate >= start && pubDate <= end;
-      });
-
-    const enrichedItems = await Promise.all(filteredItems.map(async (item) => {
-      const thumbnailUrl = await this.extractThumbnail(item.link);
-      return {
-        title: he.decode(item.title || ''),
-        original_url: item.link,
-        published_at: new Date(item.pubDate).toISOString(),
-        summary: he.decode(item.contentSnippet || item.content || ''),
-        thumbnail_url: thumbnailUrl
-      };
-    }));
-
-    return enrichedItems;
-  }
-
   async fetchYoutube(channelId, startDate = null, endDate = null) {
-    if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY.includes('dummy')) {
-        console.warn('YOUTUBE_API_KEY is missing or invalid');
-        return [];
-    }
-    const response = await this.youtube.search.list({
-      channelId: channelId,
-      part: 'snippet',
-      order: 'date',
-      maxResults: 5,
-      type: 'video'
-    });
-
-    let start, end;
-    if (startDate && endDate) {
-      start = new Date(startDate);
-      end = new Date(endDate);
-    } else {
-      const today = new Date();
-      start = new Date(today);
-      start.setDate(today.getDate() - 7);
-      end = new Date();
-    }
-
-    return response.data.items
-      .filter(item => {
-        const pubDate = new Date(item.snippet.publishedAt);
-        return pubDate >= start && pubDate <= end;
-      })
-      .map(item => ({
-        title: he.decode(item.snippet.title),
-        original_url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-        published_at: item.snippet.publishedAt,
-        summary: he.decode(item.snippet.description),
-        thumbnail_url: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url
-      }));
+    // Deprecated: Logic moved to proxy-service
+    return [];
   }
 }
 

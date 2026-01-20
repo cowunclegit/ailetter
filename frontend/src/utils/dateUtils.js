@@ -77,11 +77,17 @@ const formatDate = (date) => {
 
 export const groupTrendsByDate = (trends) => {
   if (!Array.isArray(trends)) return [];
+
+  // Sort by published_at DESC to ensure groups are ordered correctly
+  const sortedTrends = [...trends].sort((a, b) => {
+    return new Date(b.published_at) - new Date(a.published_at);
+  });
+
   const groups = [];
   let currentDate = null;
   let currentGroup = null;
 
-  trends.forEach(trend => {
+  sortedTrends.forEach(trend => {
     const date = new Date(trend.published_at);
     const dateKey = date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 

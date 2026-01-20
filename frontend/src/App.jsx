@@ -3,6 +3,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import { FeedbackProvider } from './contexts/FeedbackContext';
+import { SocketProvider } from './contexts/SocketContext';
 import FeedbackSnackbar from './components/common/FeedbackSnackbar';
 import Layout from './components/layout/Layout';
 
@@ -22,8 +23,9 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <FeedbackProvider>
-        <Router>
-          <Layout>
+        <SocketProvider>
+          <Router>
+            <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/newsletters/:id" element={<NewsletterDetails />} />
@@ -38,11 +40,13 @@ function App() {
               <Route path="/confirmation-failed" element={<Public type="failed" />} />
               <Route path="/debug" element={<DebugPage />} />
             </Routes>
-          </Layout>
-          <FeedbackSnackbar />
-        </Router>
-      </FeedbackProvider>
-    </ThemeProvider>
+                      </Layout>
+                      <FeedbackSnackbar />
+                    </Router>
+                  </SocketProvider>
+                </FeedbackProvider>
+              </ThemeProvider>
+          
   );
 }
 
