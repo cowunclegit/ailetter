@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require('../db');
 
 router.post('/wipe', async (req, res, next) => {
+  const { acquireLock } = require('../utils/db-lock');
+  const release = await acquireLock();
   try {
     db.serialize(() => {
       db.run("BEGIN TRANSACTION;");
@@ -11,6 +13,7 @@ router.post('/wipe', async (req, res, next) => {
       db.run("DELETE FROM trend_item_tags;");
       db.run("DELETE FROM trend_items;");
       db.run("COMMIT;", (err) => {
+        release();
         if (err) {
           db.run("ROLLBACK;");
           return res.status(500).json({ error: 'Failed to wipe database' });
@@ -19,6 +22,7 @@ router.post('/wipe', async (req, res, next) => {
       });
     });
   } catch (error) {
+    release();
     next(error);
   }
 });

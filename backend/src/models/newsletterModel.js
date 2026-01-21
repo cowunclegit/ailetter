@@ -16,7 +16,16 @@ class NewsletterModel {
     }
     
     // 2. Create the newsletter draft
+    const { acquireLock } = require('../utils/db-lock');
+    const release = await acquireLock();
+
     return new Promise((resolve, reject) => {
+      const cleanup = (err, result) => {
+        release();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
       db.serialize(() => {
         db.run("BEGIN TRANSACTION;");
 
@@ -31,7 +40,7 @@ class NewsletterModel {
           function (err) {
             if (err) {
               db.run("ROLLBACK;");
-              return reject(err);
+              return cleanup(err);
             }
             
             const newsletterId = this.lastID;
@@ -44,10 +53,10 @@ class NewsletterModel {
             stmt.finalize((err) => {
               if (err) {
                 db.run("ROLLBACK;");
-                return reject(err);
+                return cleanup(err);
               }
               db.run("COMMIT;");
-              resolve({ id: newsletterId, status: 'draft', item_ids: itemIds });
+              cleanup(null, { id: newsletterId, status: 'draft', item_ids: itemIds });
             });
           }
         );
@@ -106,7 +115,16 @@ class NewsletterModel {
       throw new Error('Newsletter is not in draft status and cannot be edited.');
     }
 
+    const { acquireLock } = require('../utils/db-lock');
+    const release = await acquireLock();
+
     return new Promise((resolve, reject) => {
+      const cleanup = (err, result) => {
+        release();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
       db.serialize(() => {
         db.run("BEGIN TRANSACTION;");
         
@@ -119,10 +137,10 @@ class NewsletterModel {
         stmt.finalize((err) => {
           if (err) {
             db.run("ROLLBACK;");
-            return reject(err);
+            return cleanup(err);
           }
           db.run("COMMIT;");
-          resolve(true);
+          cleanup(null, true);
         });
       });
     });
@@ -134,7 +152,16 @@ class NewsletterModel {
       throw new Error('Newsletter is not in draft status and cannot be edited.');
     }
 
+    const { acquireLock } = require('../utils/db-lock');
+    const release = await acquireLock();
+
     return new Promise((resolve, reject) => {
+      const cleanup = (err, result) => {
+        release();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
       db.serialize(() => {
         db.run("BEGIN TRANSACTION;");
 
@@ -144,7 +171,7 @@ class NewsletterModel {
           (err, row) => {
             if (err) {
               db.run("ROLLBACK;");
-              return reject(err);
+              return cleanup(err);
             }
 
             if (row) {
@@ -155,10 +182,10 @@ class NewsletterModel {
                 (err) => {
                   if (err) {
                     db.run("ROLLBACK;");
-                    return reject(err);
+                    return cleanup(err);
                   }
                   db.run("COMMIT;");
-                  resolve({ action: 'removed' });
+                  cleanup(null, { action: 'removed' });
                 }
               );
             } else {
@@ -170,7 +197,7 @@ class NewsletterModel {
                 (err, row) => {
                   if (err) {
                     db.run("ROLLBACK;");
-                    return reject(err);
+                    return cleanup(err);
                   }
                   const nextOrder = (row ? row.max_order : -1) + 1;
                   db.run(
@@ -179,10 +206,10 @@ class NewsletterModel {
                     (err) => {
                       if (err) {
                         db.run("ROLLBACK;");
-                        return reject(err);
+                        return cleanup(err);
                       }
                       db.run("COMMIT;");
-                      resolve({ action: 'added' });
+                      cleanup(null, { action: 'added' });
                     }
                   );
                 }

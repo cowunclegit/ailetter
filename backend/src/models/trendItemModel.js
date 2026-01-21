@@ -78,13 +78,22 @@ class TrendItemModel {
     });
   }
 
-  static create(item) {
+  static async create(item) {
     const { source_id, title, original_url, published_at, summary, thumbnail_url, categoryIds = [] } = item;
+    const { acquireLock } = require('../utils/db-lock');
     
     // Ensure published_at is in ISO8601 format for consistent sorting
     const formattedDate = new Date(published_at).toISOString();
 
+    const release = await acquireLock();
+
     return new Promise((resolve, reject) => {
+      const cleanup = (err, result) => {
+        release();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
         
@@ -99,7 +108,7 @@ class TrendItemModel {
                 db.get('SELECT id FROM trend_items WHERE original_url = ?', [original_url], (getErr, row) => {
                   if (getErr) {
                     db.run('ROLLBACK');
-                    return reject(getErr);
+                    return cleanup(getErr);
                   }
                   trendItemId = row.id;
                   updateTags(trendItemId);
@@ -107,7 +116,7 @@ class TrendItemModel {
                 return;
               } else {
                 db.run('ROLLBACK');
-                return reject(err);
+                return cleanup(err);
               }
             } else {
               trendItemId = this.lastID;
@@ -117,7 +126,7 @@ class TrendItemModel {
             function updateTags(id) {
               if (categoryIds.length === 0) {
                 db.run('COMMIT');
-                return resolve({ id, ...item });
+                return cleanup(null, { id, ...item });
               }
 
               // Use INSERT OR IGNORE for tags to avoid duplicates if re-collecting
@@ -128,10 +137,10 @@ class TrendItemModel {
               stmt.finalize(err => {
                 if (err) {
                   db.run('ROLLBACK');
-                  reject(err);
+                  cleanup(err);
                 } else {
                   db.run('COMMIT');
-                  resolve({ id, ...item });
+                  cleanup(null, { id, ...item });
                 }
               });
             }
