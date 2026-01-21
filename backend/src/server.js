@@ -32,7 +32,8 @@ app.use(helmet({
   hsts: false,
 }));
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 // Routes will be mounted here
 app.get('/health', (req, res) => {
