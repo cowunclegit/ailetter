@@ -1,12 +1,10 @@
-const OpenAI = require('openai');
 const TrendItemModel = require('../models/trendItemModel');
-const config = require('../config/env');
+const MockAiProvider = require('./providers/mockAiProvider');
 
 class AiService {
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: config.openaiApiKey,
-    });
+  constructor(provider = null) {
+    // Default to MockAiProvider, but allow injection for testing or future providers
+    this.provider = provider || new MockAiProvider();
   }
 
   async processTrends(items) {
@@ -35,17 +33,14 @@ class AiService {
       ${JSON.stringify(items.map(i => ({ id: i.id, title: i.title, summary: i.summary ? i.summary.substring(0, 200) : '' })))}`;
 
     try {
-      const completion = await this.openai.chat.completions.create({
-        messages: [{ role: 'user', content: prompt }],
-        model: 'gpt-3.5-turbo',
-        response_format: { type: "json_object" },
+      const response = await this.provider.getJsonCompletion(prompt, {
+        response_format: { type: "json_object" }
       });
 
-      const response = JSON.parse(completion.choices[0].message.content);
       return response.selected_ids || [];
     } catch (error) {
       console.error('AI Selection Error:', error);
-      // Fallback: return top 20 by date (assuming input was sorted or just taking first 20)
+      // Fallback: return top 20 items
       return items.slice(0, 20).map(i => i.id);
     }
   }
@@ -59,12 +54,8 @@ class AiService {
     const resolvedPrompt = this.resolvePrompt(promptTemplate, items);
 
     try {
-      const completion = await this.openai.chat.completions.create({
-        messages: [{ role: 'user', content: resolvedPrompt }],
-        model: 'gpt-3.5-turbo',
-      });
-
-      return completion.choices[0].message.content.trim();
+      const content = await this.provider.getCompletion(resolvedPrompt);
+      return content.trim();
     } catch (error) {
       console.error('AI Subject Recommendation Error:', error);
       throw error;
