@@ -26,6 +26,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-13
 - SQLite3 (New table: `ai_subject_presets`) (020-ai-subject-options)
 - Node.js v18+ + `ws` (WebSocket), `express` (Main Backend API), `fs-extra` (Image storage) (021-collect-proxy-service)
 - SQLite3 (Main Backend DB), Local File System (Thumbnails) (021-collect-proxy-service)
+- Node.js v18+, React.js (Frontend) + `express`, `sqlite3`, `axios`, `uuid` (024-infra-setup-http-polling)
 
 - Node.js (Backend), React.js (Frontend) + `rss-parser` (RSS), `googleapis` (YouTube), `@sendgrid/mail` (Email), `node-cron` (Scheduling) (001-ai-trend-newsletter)
 
@@ -45,9 +46,9 @@ tests/
 Node.js (Backend), React.js (Frontend): Follow standard conventions
 
 ## Recent Changes
+- 024-infra-setup-http-polling: Added Node.js v18+, React.js (Frontend) + `express`, `sqlite3`, `axios`, `uuid`
 - 023-mock-ai-service: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 022-manage-subscribers: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-- 021-collect-proxy-service: Added Node.js v18+ + `ws` (WebSocket), `express` (Main Backend API), `fs-extra` (Image storage)
 
 
 

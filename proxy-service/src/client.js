@@ -1,96 +1,68 @@
-const WebSocket = require('ws');
+const axios = require('axios');
 const { collectFromRSS, collectFromYoutube, extractThumbnail, fetchAndBase64 } = require('./collector');
 require('dotenv').config();
 
-let ws = null;
-let reconnectAttempts = 0;
-const MAX_RECONNECT_DELAY = 30000; // 30 seconds
+const BACKEND_URL = process.env.MAIN_BACKEND_URL || 'http://localhost:3080';
+const POLLING_INTERVAL = parseInt(process.env.POLLING_INTERVAL, 10) || 5000;
+const TOKEN = process.env.PROXY_SHARED_SECRET;
 
-const connectProxy = () => {
-  let url = process.env.MAIN_BACKEND_WS_URL;
-  const token = process.env.PROXY_SHARED_SECRET;
-  const clientId = process.env.PROXY_CLIENT_ID;
+let isProcessing = false;
 
-  // Auto-upgrade to wss:// if connecting to the HTTPS backend on port 3080
-  if (url && url.startsWith('ws://') && url.includes(':3080')) {
-    console.log('Auto-upgrading connection to wss:// for HTTPS backend...');
-    url = url.replace('ws://', 'wss://');
-  }
+const pollForTasks = async () => {
+  if (isProcessing) return;
 
-  console.log(`Attempting to connect to Main Backend at ${url}...`);
+  try {
+    const response = await axios.get(`${BACKEND_URL}/api/proxy/tasks`, {
+      headers: { 'x-proxy-token': TOKEN }
+    });
 
-  ws = new WebSocket(url, {
-    headers: {
-      'x-proxy-token': token
-    },
-    rejectUnauthorized: false // Allow self-signed certs for local development
-  });
-
-  ws.on('open', () => {
-    console.log('Connected to Main Backend');
-    reconnectAttempts = 0;
-    
-    ws.send(JSON.stringify({
-      type: 'IDENTIFY',
-      payload: { client_id: clientId }
-    }));
-  });
-
-  ws.on('message', async (data) => {
-    try {
-      const message = JSON.parse(data);
-      await handleMessage(message);
-    } catch (err) {
-      console.error('Failed to handle message:', err.message);
+    if (response.status === 200 && response.data && response.data.task) {
+      const task = response.data.task;
+      console.log(`Received task: ${task.id}`);
+      isProcessing = true;
+      try {
+        await runCollection(task);
+      } finally {
+        isProcessing = false;
+      }
     }
-  });
-
-  ws.on('close', () => {
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY);
-    console.log(`Disconnected from Main Backend. Reconnecting in ${delay/1000}s...`);
-    reconnectAttempts++;
-    setTimeout(connectProxy, delay);
-  });
-
-  ws.on('error', (err) => {
-    console.error('WebSocket error:', err.message);
-  });
-
-  return ws;
-};
-
-const handleMessage = async (message) => {
-  const { type, payload } = message;
-  console.log('Received message:', type);
-
-  switch (type) {
-    case 'START_COLLECTION':
-      await runCollection(payload);
-      break;
-    case 'HEARTBEAT':
-      ws.send(JSON.stringify({ type: 'HEARTBEAT_ACK' }));
-      break;
-    default:
-      console.log('Unhandled message type:', type);
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      console.error('Authentication failed with backend. Check PROXY_SHARED_SECRET.');
+    } else if (error.response && error.response.status === 204) {
+      // No tasks, do nothing
+    } else {
+      console.error('Error polling backend:', error.message);
+    }
   }
 };
 
-const runCollection = async (payload) => {
-  const { task_id, sources } = payload;
+const sendUpdate = async (type, payload) => {
+  try {
+    await axios.post(`${BACKEND_URL}/api/proxy/update`, {
+      type,
+      payload
+    }, {
+      headers: { 'x-proxy-token': TOKEN }
+    });
+  } catch (error) {
+    console.error(`Failed to send ${type} update:`, error.message);
+  }
+};
+
+const runCollection = async (task) => {
+  const { id: task_id, sources } = task;
   console.log(`Starting collection for task: ${task_id}`);
 
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
     try {
-      ws.send(JSON.stringify({
-        type: 'PROGRESS_UPDATE',
-        payload: {
-          task_id,
-          message: `Scraping ${source.url}...`,
-          current: i + 1,
-          total: sources.length
-        }
-      }));
+      await sendUpdate('PROGRESS_UPDATE', {
+        task_id,
+        message: `Scraping ${source.url}...`,
+        current: i + 1,
+        total: sources.length
+      });
 
       let items = [];
       if (source.type === 'rss') {
@@ -108,35 +80,31 @@ const runCollection = async (payload) => {
           item.thumbnail_data = await fetchAndBase64(item.thumbnail_url);
         }
 
-        ws.send(JSON.stringify({
-          type: 'ITEM_COLLECTED',
-          payload: {
-            task_id,
-            item: {
-              ...item,
-              source_id: source.id,
-              category_ids: source.category_ids
-            }
+        await sendUpdate('ITEM_COLLECTED', {
+          task_id,
+          item: {
+            ...item,
+            source_id: source.id,
+            category_ids: source.category_ids
           }
-        }));
+        });
       }
     } catch (error) {
       console.error(`Error collecting from ${source.url}:`, error.message);
-      ws.send(JSON.stringify({
-        type: 'COLLECTION_ERROR',
-        payload: {
-          task_id,
-          error: error.message,
-          source_url: source.url
-        }
-      }));
+      await sendUpdate('COLLECTION_ERROR', {
+        task_id,
+        error: error.message,
+        source_url: source.url
+      });
     }
   }
 
-  ws.send(JSON.stringify({
-    type: 'COLLECTION_COMPLETE',
-    payload: { task_id }
-  }));
+  await sendUpdate('COLLECTION_COMPLETE', { task_id });
+};
+
+const connectProxy = () => {
+  console.log(`Starting HTTP Polling to ${BACKEND_URL} every ${POLLING_INTERVAL}ms...`);
+  setInterval(pollForTasks, POLLING_INTERVAL);
 };
 
 module.exports = {
