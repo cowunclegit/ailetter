@@ -12,6 +12,8 @@ function runAsync(sql, params = []) {
 
 describe('Newsletter Model', () => {
     beforeEach(async () => {
+        // Seed a source first
+        await new Promise((res) => db.run("INSERT OR IGNORE INTO sources (id, name, type, url) VALUES (1, 'Test Source', 'rss', 'http://test.com/rss')", res));
         // Seed some trend items
         await new Promise((res) => db.run("INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES (1, 1, 'Test 1', 'http://test.com/1', '2026-01-10'), (2, 1, 'Test 2', 'http://test.com/2', '2026-01-11'), (3, 1, 'Test 3', 'http://test.com/3', '2026-01-12')", res));
     });
@@ -19,6 +21,7 @@ describe('Newsletter Model', () => {
     afterEach(async () => {
         await new Promise((res) => db.run("DELETE FROM newsletter_items", res));
         await new Promise((res) => db.run("DELETE FROM newsletters", res));
+        await new Promise((res) => db.run("DELETE FROM trend_item_tags", res));
         await new Promise((res) => db.run("DELETE FROM trend_items", res));
     });
 
@@ -66,6 +69,24 @@ describe('Newsletter Model', () => {
     expect(items[0].trend_item_id).toBe(3);
     expect(items[1].trend_item_id).toBe(1);
     expect(items[2].trend_item_id).toBe(2);
+  });
+
+  it('should get newsletter by id with new fields', async () => {
+    // 1. Manually insert a newsletter with new fields
+    await runAsync(
+      "INSERT INTO newsletters (id, issue_date, status, subject, introduction_html, conclusion_html) VALUES (?, ?, ?, ?, ?, ?)",
+      [101, '2026-01-19', 'draft', 'Test Subject', '<p>Intro</p>', '<p>Outro</p>']
+    );
+    await runAsync("INSERT INTO newsletter_items (newsletter_id, trend_item_id, display_order) VALUES (101, 1, 0)");
+
+    // 2. Retrieve via model
+    const newsletter = await NewsletterModel.getById(101);
+    
+    expect(newsletter).toBeDefined();
+    expect(newsletter.subject).toBe('Test Subject');
+    expect(newsletter.introduction_html).toBe('<p>Intro</p>');
+    expect(newsletter.conclusion_html).toBe('<p>Outro</p>');
+    expect(newsletter.items.length).toBe(1);
   });
 
   it('should overwrite existing draft when creating a new one', async () => {

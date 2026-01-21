@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= (typeof subject !== 'undefined' && subject) ? subject : 'AI Weekly Trends' %></title>
+</head>
+<body style="font-family: 'Courier New', Courier, monospace; line-height: 1.4; color: #00ff00; margin: 0; padding: 0; background-color: #000000;">
+    <div style="max-width: 650px; margin: 20px auto; border: 1px solid #333; padding: 20px;">
+        <div style="margin-bottom: 30px;">
+            <p style="margin: 0; color: #888;">// INITIALIZING_AI_NEWSLETTER...</p>
+            <% if (typeof introduction_html !== 'undefined' && introduction_html) { %>
+                <div style="margin-top: 15px; border-left: 3px solid #00ff00; padding-left: 15px;">
+                    <%- introduction_html %>
+                </div>
+            <% } %>
+        </div>
+        
+        <% items.forEach(function(item, index) { %>
+            <div style="margin-bottom: 40px;">
+                <p style="margin: 0 0 10px; color: #ff00ff;">[ITEM_<%= index + 1 %>]</p>
+                <% if (item.thumbnail_url) { %>
+                    <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 100%; border: 1px solid #333; margin-bottom: 15px; opacity: 0.8;">
+                <% } %>
+                <h2 style="margin: 0 0 10px; font-size: 18px; font-weight: bold;"><a href="<%= item.original_url %>" style="text-decoration: none; color: #00ff00;">> <%= item.title %></a></h2>
+                <p style="margin: 0; font-size: 14px; color: #00cc00;"><%= item.summary %></p>
+            </div>
+        <% }); %>
+
+        <% if (typeof conclusion_html !== 'undefined' && conclusion_html) { %>
+            <div style="margin-top: 30px; color: #888;">
+                <p style="margin: 0;">/*</p>
+                <div style="padding: 0 15px;"><%- conclusion_html %></div>
+                <p style="margin: 0;">*/</p>
+            </div>
+        <% } %>
+        
+        <div style="margin-top: 40px; border-top: 1px solid #333; padding-top: 20px; font-size: 12px; color: #444;">
+            EOF_2026_AILETTER | <a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>" style="color: #444;">UNSUBSCRIBE()</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -41,4 +41,24 @@ describe('TrendCard', () => {
     render(<TrendCard {...mockProps} />);
     expect(screen.queryByText('AI Selected')).not.toBeInTheDocument();
   });
+
+  it('renders YouTube icon when sourceType is youtube', () => {
+    render(<TrendCard {...mockProps} sourceType="youtube" />);
+    expect(screen.getByTestId('YouTubeIcon')).toBeInTheDocument();
+  });
+
+  it('renders thumbnail when thumbnailUrl is provided', () => {
+    const thumbnailUrl = 'https://example.com/thumb.jpg';
+    render(<TrendCard {...mockProps} thumbnailUrl={thumbnailUrl} />);
+    const img = screen.getByRole('img');
+    expect(img).toHaveAttribute('src', thumbnailUrl);
+  });
+
+  it('renders title as a link with correct href', () => {
+    const originalUrl = 'https://example.com/article';
+    render(<TrendCard {...mockProps} originalUrl={originalUrl} />);
+    const link = screen.getByRole('link', { name: mockProps.title });
+    expect(link).toHaveAttribute('href', originalUrl);
+    expect(link).toHaveAttribute('target', '_blank');
+  });
 });

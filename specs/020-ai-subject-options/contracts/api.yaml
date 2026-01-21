@@ -1,0 +1,38 @@
+openapi: 3.0.0
+info:
+  title: AI Subject Options API
+  version: 1.0.0
+paths:
+  /api/ai-presets:
+    get:
+      summary: List all AI subject presets
+    post:
+      summary: Create a new AI subject preset
+  /api/ai-presets/{id}:
+    put:
+      summary: Update a preset
+    delete:
+      summary: Delete a preset
+  /api/newsletters/{id}/ai-recommend-subject:
+    post:
+      summary: Get AI recommended subject line
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [preset_id]
+              properties:
+                preset_id:
+                  type: integer
+                current_subject:
+                  type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggested_subject:
+                    type: string

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= (typeof subject !== 'undefined' && subject) ? subject : 'AI Weekly Trends' %></title>
+</head>
+<body style="font-family: Georgia, serif; line-height: 1.8; color: #111; margin: 0; padding: 40px 20px; background-color: #ffffff;">
+    <div style="max-width: 500px; margin: 0 auto;">
+        <% if (typeof introduction_html !== 'undefined' && introduction_html) { %>
+            <div style="margin-bottom: 40px; font-size: 18px; border-bottom: 2px solid #000; padding-bottom: 20px;">
+                <%- introduction_html %>
+            </div>
+        <% } %>
+        
+        <% items.forEach(function(item) { %>
+            <div style="margin-bottom: 50px;">
+                <% if (item.thumbnail_url) { %>
+                    <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 100%; border-radius: 2px; margin-bottom: 15px; filter: grayscale(100%);">
+                <% } %>
+                <h2 style="margin: 0 0 10px; font-size: 22px; font-weight: bold;"><a href="<%= item.original_url %>" style="text-decoration: underline; color: #000;"><%= item.title %></a></h2>
+                <p style="margin: 0; font-size: 15px;"><%= item.summary %></p>
+            </div>
+        <% }); %>
+
+        <% if (typeof conclusion_html !== 'undefined' && conclusion_html) { %>
+            <div style="margin-top: 40px; padding-top: 20px; font-style: italic; border-top: 1px solid #eee;">
+                <%- conclusion_html %>
+            </div>
+        <% } %>
+        
+        <div style="margin-top: 60px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;">
+            &copy; 2026 AILetter &bull; <a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>" style="color: #999;">Unsubscribe</a>
+        </div>
+    </div>
+</body>
+</html>

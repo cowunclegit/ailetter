@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  title: Source Categories API
+  version: 1.0.0
+paths:
+  /api/categories:
+    get:
+      summary: List all categories
+      description: Returns a list of all source categories sorted alphabetically.
+      responses:
+        '200':
+          description: A JSON array of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "AI Development"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Validation error (e.g. duplicate name)
+
+  /api/categories/{id}:
+    put:
+      summary: Update a category
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the category to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Updated Name"
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+    delete:
+      summary: Delete a category
+      description: Deletes the category. Linked sources are set to NULL (uncategorized).
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID of the category to delete
+      responses:
+        '204':
+          description: No Content (Deleted successfully)
+        '404':
+          description: Category not found
+
+components:
+  schemas:
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "AI Development"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

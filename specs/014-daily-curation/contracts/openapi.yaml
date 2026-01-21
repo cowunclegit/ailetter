@@ -1,0 +1,54 @@
+openapi: 3.0.0
+info:
+  title: Trends API (Daily Curation Update)
+  version: 1.1.0
+paths:
+  /api/trends:
+    get:
+      summary: List trends with pagination
+      description: Returns a list of trend items, sorted by publication date descending.
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Number of items to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Number of items to skip
+      responses:
+        '200':
+          description: A list of trend items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrendItem'
+                  total:
+                    type: integer
+                    description: Total count of items matching filters (optional but helpful)
+                  hasMore:
+                    type: boolean
+                    description: True if there are more items to fetch
+
+components:
+  schemas:
+    TrendItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+        # ... other fields unchanged

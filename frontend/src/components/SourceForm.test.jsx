@@ -2,39 +2,41 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SourceForm from './SourceForm';
 
+// Mock categoriesApi
+jest.mock('../api/categoriesApi', () => ({
+  categoriesApi: {
+    getAll: jest.fn().mockResolvedValue([])
+  }
+}));
+
 describe('SourceForm', () => {
-  const mockOnAdd = jest.fn();
+  const mockOnSubmit = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders form inputs', () => {
-    render(<SourceForm onAdd={mockOnAdd} />);
+    render(<SourceForm onSubmit={mockOnSubmit} />);
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/URL/i)).toBeInTheDocument();
   });
 
-  it('calls onAdd when submitted with valid data', async () => {
-    render(<SourceForm onAdd={mockOnAdd} />);
+  it('calls onSubmit when submitted with valid data', async () => {
+    render(<SourceForm onSubmit={mockOnSubmit} />);
     
     fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'New Source' } });
     fireEvent.change(screen.getByLabelText(/URL/i), { target: { value: 'https://example.com/rss' } });
     
-    // Select type (might need to target MUI select specifically, but let's assume standard select for now or try basics)
-    // If it's MUI select, it's harder to test with standard fireEvent. 
-    // Assuming default is RSS, so we don't need to change it for this test.
-    
-    fireEvent.click(screen.getByText(/Add Source/i)); // Button text
+    fireEvent.click(screen.getByText(/Add Source/i));
 
     await waitFor(() => {
-      expect(mockOnAdd).toHaveBeenCalledWith({
+      expect(mockOnSubmit).toHaveBeenCalledWith({
         name: 'New Source',
         url: 'https://example.com/rss',
-        type: 'rss' // default
+        type: 'rss',
+        categoryIds: []
       });
     });
   });
-
-  // Validation test (if we implement client-side validation)
 });

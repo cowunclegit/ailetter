@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: Template Management API
+  version: 1.0.0
+paths:
+  /api/templates:
+    get:
+      summary: List all available email templates
+      responses:
+        '200':
+          description: A list of templates with metadata
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    thumbnail_url:
+                      type: string
+
+  /api/newsletters/{id}:
+    put:
+      summary: Update newsletter draft (including template selection)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template_id:
+                  type: string
+                subject:
+                  type: string
+                introduction_html:
+                  type: string
+                conclusion_html:
+                  type: string
+      responses:
+        '200':
+          description: Updated successfully

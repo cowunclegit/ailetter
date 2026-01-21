@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= (typeof subject !== 'undefined' && subject) ? subject : 'AI Weekly Trends' %></title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.4; color: #333; margin: 0; padding: 0; background-color: #f4f4f7;">
+    <div style="max-width: 500px; margin: 20px auto; background: #ffffff; padding: 20px;">
+        <% if (typeof introduction_html !== 'undefined' && introduction_html) { %>
+            <div style="margin-bottom: 20px; font-size: 14px;">
+                <%- introduction_html %>
+            </div>
+        <% } %>
+        
+        <% items.forEach(function(item) { %>
+            <div style="margin-bottom: 15px; display: flex; align-items: flex-start; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px;">
+                <% if (item.thumbnail_url) { %>
+                    <img src="<%= item.thumbnail_url %>" alt="<%= item.title %>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 12px;">
+                <% } %>
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 4px; font-size: 15px;"><a href="<%= item.original_url %>" style="text-decoration: none; color: #1976d2;"><%= item.title %></a></h3>
+                    <p style="margin: 0; color: #777; font-size: 12px;"><%= item.summary.substring(0, 100) %>...</p>
+                </div>
+            </div>
+        <% }); %>
+
+        <% if (typeof conclusion_html !== 'undefined' && conclusion_html) { %>
+            <div style="margin-top: 20px; font-size: 13px; color: #666; font-style: italic;">
+                <%- conclusion_html %>
+            </div>
+        <% } %>
+        
+        <div style="margin-top: 30px; font-size: 10px; color: #ccc; text-align: center;">
+            &copy; 2026 AILetter &bull; <a href="http://localhost:5173/unsubscribe?token=<%= subscriber_token %>" style="color: #ccc;">Unsubscribe</a>
+        </div>
+    </div>
+</body>
+</html>

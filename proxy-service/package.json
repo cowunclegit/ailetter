@@ -1,0 +1,28 @@
+{
+  "name": "proxy-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "fs-extra": "^11.3.3",
+    "googleapis": "^170.1.0",
+    "he": "^1.2.0",
+    "metascraper": "^5.49.15",
+    "metascraper-image": "^5.49.15",
+    "rss-parser": "^3.13.0",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}

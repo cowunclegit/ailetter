@@ -6,8 +6,15 @@ import EditIcon from '@mui/icons-material/Edit';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 
-const TrendCard = ({ title, summary, source, date, isSelected, onToggle, isDuplicate, status, originalUrl, sourceType, thumbnailUrl }) => {
+const TrendCard = ({ title, summary, source, date, isSelected, onToggle, isDuplicate, status, originalUrl, sourceType, thumbnailUrl, categoryNames = [] }) => {
   const [imageError, setImageError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImageError(false);
+    if (thumbnailUrl) {
+      // console.log(`TrendCard [${title}]: ${thumbnailUrl}`);
+    }
+  }, [thumbnailUrl, title]);
 
   return (
     <Card sx={{ 
@@ -23,7 +30,12 @@ const TrendCard = ({ title, summary, source, date, isSelected, onToggle, isDupli
           height="140"
           image={thumbnailUrl}
           alt={title}
-          onError={() => setImageError(true)}
+          onError={(e) => {
+            console.error(`Image load failed for ${title}:`, e);
+            setImageError(true);
+          }}
+          sx={{ objectFit: 'cover' }}
+          referrerPolicy="no-referrer"
         />
       ) : (
         <Box sx={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.200' }}>
@@ -33,7 +45,7 @@ const TrendCard = ({ title, summary, source, date, isSelected, onToggle, isDupli
       <CardContent sx={{ flexGrow: 1 }}>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1} flexWrap="wrap" gap={0.5}>
           <Box display="flex" alignItems="center" gap={0.5}>
-            {sourceType === 'youtube' && <YouTubeIcon color="error" fontSize="small" />}
+            {sourceType === 'youtube' && <YouTubeIcon color="error" fontSize="small" data-testid="YouTubeIcon" />}
             <Typography variant="caption" color="textSecondary">
               {source} • {date}
             </Typography>
@@ -59,8 +71,19 @@ const TrendCard = ({ title, summary, source, date, isSelected, onToggle, isDupli
             )}
           </Box>
         </Box>
+        
+        <Box display="flex" gap={0.5} mb={1} flexWrap="wrap">
+          {categoryNames.length > 0 ? (
+            categoryNames.map(name => (
+              <Chip key={name} label={name} size="small" variant="filled" sx={{ height: 20, fontSize: '0.7rem' }} />
+            ))
+          ) : (
+            <Chip label="Uncategorized" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem', fontStyle: 'italic' }} />
+          )}
+        </Box>
+
         <Typography variant="h6" component="div" gutterBottom>
-          <Link href={originalUrl} target="_blank" rel="noopener" underline="hover" color="inherit">
+          <Link href={originalUrl} target="_blank" rel="noopener" underline="hover" color="primary">
             {title}
           </Link>
         </Typography>

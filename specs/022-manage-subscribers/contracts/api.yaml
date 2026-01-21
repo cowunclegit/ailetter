@@ -1,0 +1,149 @@
+openapi: 3.0.0
+info:
+  title: Subscriber Management API
+  version: 1.0.0
+paths:
+  /api/subscribers:
+    get:
+      summary: List all subscribers
+      responses:
+        '200':
+          description: A list of subscribers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscriber'
+    post:
+      summary: Create a new subscriber
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                categoryIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '201':
+          description: Subscriber created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscriber'
+
+  /api/subscribers/{id}:
+    put:
+      summary: Update a subscriber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                is_subscribed:
+                  type: boolean
+                categoryIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Subscriber updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscriber'
+
+  /api/subscribers/unsubscribe/{uuid}:
+    post:
+      summary: Unsubscribe a user by UUID
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User unsubscribed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  subscriber:
+                    $ref: '#/components/schemas/Subscriber'
+        '404':
+          description: Subscriber not found
+
+  /api/subscribers/sync:
+    post:
+      summary: Trigger sync skeleton
+      responses:
+        '200':
+          description: Sync simulation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                    example: "success"
+
+components:
+  schemas:
+    Subscriber:
+      type: object
+      properties:
+        id:
+          type: integer
+        uuid:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        is_subscribed:
+          type: boolean
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        created_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
