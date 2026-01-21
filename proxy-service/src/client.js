@@ -16,14 +16,18 @@ const pollForTasks = async () => {
 
   try {
     const agent = getUndiciProxyAgent(BACKEND_URL);
-    const response = await fetch(`${BACKEND_URL}/api/proxy/tasks`, {
+    const fetchOptions = {
       method: 'GET',
       headers: { 
         'x-proxy-token': TOKEN,
         'Connection': 'close' // Explicitly disable keep-alive at protocol level
-      },
-      dispatcher: agent
-    });
+      }
+    };
+    if (agent) {
+      fetchOptions.dispatcher = agent;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/proxy/tasks`, fetchOptions);
 
     if (response.status === 200) {
       const data = await response.json();
@@ -47,16 +51,20 @@ const pollForTasks = async () => {
 const sendUpdate = async (type, payload) => {
   try {
     const agent = getUndiciProxyAgent(BACKEND_URL);
-    const response = await fetch(`${BACKEND_URL}/api/proxy/update`, {
+    const fetchOptions = {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'x-proxy-token': TOKEN,
         'Connection': 'close'
       },
-      body: JSON.stringify({ type, payload }),
-      dispatcher: agent
-    });
+      body: JSON.stringify({ type, payload })
+    };
+    if (agent) {
+      fetchOptions.dispatcher = agent;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/proxy/update`, fetchOptions);
 
     if (!response.ok) {
       console.error(`Failed to send ${type} update: ${response.status} ${response.statusText}`);
