@@ -61,7 +61,7 @@ class Collector {
         title: item.title,
         source_url: item.link,
         content: he.decode(item.contentSnippet || ''),
-        published_at: item.pubDate,
+        published_at: new Date(item.pubDate).toISOString(),
         thumbnail_url: null // Will be filled later
       }));
   }
