@@ -1,4 +1,6 @@
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 const { collectFromRSS, collectFromYoutube, extractThumbnail, fetchAndBase64 } = require('./collector');
 require('dotenv').config();
 
@@ -6,13 +8,20 @@ const BACKEND_URL = process.env.MAIN_BACKEND_URL || 'http://localhost:3080';
 const POLLING_INTERVAL = parseInt(process.env.POLLING_INTERVAL, 10) || 5000;
 const TOKEN = process.env.PROXY_SHARED_SECRET;
 
+// Create axios instance with disabled keepAlive for Windows stability
+const client = axios.create({
+  httpAgent: new http.Agent({ keepAlive: false }),
+  httpsAgent: new https.Agent({ keepAlive: false }),
+  timeout: 10000
+});
+
 let isProcessing = false;
 
 const pollForTasks = async () => {
   if (isProcessing) return;
 
   try {
-    const response = await axios.get(`${BACKEND_URL}/api/proxy/tasks`, {
+    const response = await client.get(`${BACKEND_URL}/api/proxy/tasks`, {
       headers: { 'x-proxy-token': TOKEN }
     });
 
@@ -39,7 +48,7 @@ const pollForTasks = async () => {
 
 const sendUpdate = async (type, payload) => {
   try {
-    await axios.post(`${BACKEND_URL}/api/proxy/update`, {
+    await client.post(`${BACKEND_URL}/api/proxy/update`, {
       type,
       payload
     }, {

@@ -74,6 +74,10 @@ if (process.env.NODE_ENV !== 'test') {
 if (require.main === module) {
   const server = http.createServer(app);
   
+  // Configure timeouts for stability
+  server.keepAliveTimeout = 65000; // 65 seconds
+  server.headersTimeout = 66000;   // 66 seconds
+  
   const io = new Server(server, {
     cors: {
       origin: "*",
