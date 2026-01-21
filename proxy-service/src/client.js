@@ -1,6 +1,3 @@
-const axios = require('axios');
-const http = require('http');
-const https = require('https');
 const { collectFromRSS, collectFromYoutube, extractThumbnail, fetchAndBase64 } = require('./collector');
 require('dotenv').config();
 
@@ -8,54 +5,59 @@ const BACKEND_URL = process.env.MAIN_BACKEND_URL || 'http://localhost:3080';
 const POLLING_INTERVAL = parseInt(process.env.POLLING_INTERVAL, 10) || 5000;
 const TOKEN = process.env.PROXY_SHARED_SECRET;
 
-// Create axios instance with disabled keepAlive for Windows stability
-const client = axios.create({
-  httpAgent: new http.Agent({ keepAlive: false }),
-  httpsAgent: new https.Agent({ keepAlive: false }),
-  timeout: 10000
-});
-
 let isProcessing = false;
 
+/**
+ * Native fetch based polling to avoid axios-specific socket issues on Windows
+ */
 const pollForTasks = async () => {
   if (isProcessing) return;
 
   try {
-    const response = await client.get(`${BACKEND_URL}/api/proxy/tasks`, {
-      headers: { 'x-proxy-token': TOKEN }
+    const response = await fetch(`${BACKEND_URL}/api/proxy/tasks`, {
+      method: 'GET',
+      headers: { 
+        'x-proxy-token': TOKEN,
+        'Connection': 'close' // Explicitly disable keep-alive at protocol level
+      }
     });
 
-    if (response.status === 200 && response.data && response.data.task) {
-      const task = response.data.task;
-      console.log(`Received task: ${task.id}`);
-      isProcessing = true;
-      try {
-        await runCollection(task);
-      } finally {
-        isProcessing = false;
+    if (response.status === 200) {
+      const data = await response.json();
+      if (data && data.task) {
+        console.log(`Received task: ${data.task.id}`);
+        isProcessing = true;
+        try {
+          await runCollection(data.task);
+        } finally {
+          isProcessing = false;
+        }
       }
+    } else if (response.status === 401) {
+      console.error('Authentication failed with backend. Check PROXY_SHARED_SECRET.');
     }
   } catch (error) {
-    if (error.response && error.response.status === 401) {
-      console.error('Authentication failed with backend. Check PROXY_SHARED_SECRET.');
-    } else if (error.response && error.response.status === 204) {
-      // No tasks, do nothing
-    } else {
-      console.error('Error polling backend:', error.message);
-    }
+    console.error('Error polling backend:', error.message);
   }
 };
 
 const sendUpdate = async (type, payload) => {
   try {
-    await client.post(`${BACKEND_URL}/api/proxy/update`, {
-      type,
-      payload
-    }, {
-      headers: { 'x-proxy-token': TOKEN }
+    const response = await fetch(`${BACKEND_URL}/api/proxy/update`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-proxy-token': TOKEN,
+        'Connection': 'close'
+      },
+      body: JSON.stringify({ type, payload })
     });
+
+    if (!response.ok) {
+      console.error(`Failed to send ${type} update: ${response.status} ${response.statusText}`);
+    }
   } catch (error) {
-    console.error(`Failed to send ${type} update:`, error.message);
+    console.error(`Failed to send ${type} update error:`, error.message);
   }
 };
 
@@ -112,7 +114,7 @@ const runCollection = async (task) => {
 };
 
 const connectProxy = () => {
-  console.log(`Starting HTTP Polling to ${BACKEND_URL} every ${POLLING_INTERVAL}ms...`);
+  console.log(`Starting HTTP Polling (fetch) to ${BACKEND_URL} every ${POLLING_INTERVAL}ms...`);
   setInterval(pollForTasks, POLLING_INTERVAL);
 };
 
