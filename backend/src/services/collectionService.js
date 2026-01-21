@@ -8,6 +8,7 @@ const metascraper = require('metascraper')([
 const SourceModel = require('../models/sourceModel');
 const TrendItemModel = require('../models/trendItemModel');
 const { getProxyClient } = require('./websocket/proxy-server');
+const { activeCollections } = require('./collectionState');
 
 class CollectionService {
   constructor() {
@@ -22,7 +23,6 @@ class CollectionService {
         version: 'v3',
         auth: process.env.YOUTUBE_API_KEY
     });
-    this.activeCollections = new Map();
   }
 
   async extractThumbnail(url) {
@@ -41,12 +41,12 @@ class CollectionService {
 
   async collectAll(startDate = null, endDate = null) {
     const lockKey = startDate || 'auto';
-    if (this.activeCollections.get(lockKey)) {
+    if (activeCollections.get(lockKey)) {
       console.log(`Collection for ${lockKey} already in progress. Skipping.`);
       return null;
     }
 
-          this.activeCollections.set(lockKey, true);
+          activeCollections.set(lockKey, true);
           try {
             const proxyClient = getProxyClient();
     
@@ -127,13 +127,67 @@ class CollectionService {
       }
       return savedItems;
     } finally {
-      this.activeCollections.delete(lockKey);
+      activeCollections.delete(lockKey);
     }
   }
 
+  async fetchRss(url, startDate = null, endDate = null) {
+    const feed = await this.parser.parseURL(url);
+    const items = feed.items || [];
+    const validItems = [];
+
+    for (const item of items) {
+      const pubDate = new Date(item.pubDate || item.isoDate);
+      
+      // Filter by date
+      if (startDate && pubDate < new Date(startDate)) continue;
+      if (endDate && pubDate > new Date(endDate)) continue;
+
+      let thumbnail = null;
+      // Try to find thumbnail in enclosure or media:content
+      if (item.enclosure && item.enclosure.url && item.enclosure.type && item.enclosure.type.startsWith('image/')) {
+        thumbnail = item.enclosure.url;
+      } else if (item['media:content'] && item['media:content'].url) { // Basic RSS media extension support
+        thumbnail = item['media:content'].url;
+      } else {
+        // Fallback to scraping
+        thumbnail = await this.extractThumbnail(item.link);
+      }
+
+      validItems.push({
+        title: item.title,
+        original_url: item.link,
+        published_at: pubDate.toISOString(),
+        summary: item.contentSnippet || item.content,
+        thumbnail_url: thumbnail
+      });
+    }
+    return validItems;
+  }
+
   async fetchYoutube(channelId, startDate = null, endDate = null) {
-    // Deprecated: Logic moved to proxy-service
-    return [];
+    try {
+      const response = await this.youtube.search.list({
+        part: 'snippet',
+        channelId: channelId,
+        maxResults: 50,
+        order: 'date',
+        publishedAfter: startDate,
+        publishedBefore: endDate,
+        type: 'video'
+      });
+
+      return response.data.items.map(item => ({
+        title: he.decode(item.snippet.title),
+        original_url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+        published_at: item.snippet.publishedAt,
+        summary: he.decode(item.snippet.description),
+        thumbnail_url: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url
+      }));
+    } catch (error) {
+      console.error(`YouTube fetch error for ${channelId}:`, error.message);
+      return [];
+    }
   }
 }
 

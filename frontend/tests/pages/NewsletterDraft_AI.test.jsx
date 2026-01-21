@@ -4,10 +4,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 import NewsletterDraft from '../../src/pages/NewsletterDraft';
 import { FeedbackContext } from '../../src/contexts/FeedbackContext';
+import { aiPresetsApi } from '../../src/api/aiPresetsApi';
 import '@testing-library/jest-dom';
 
 // Mock axios
 jest.mock('axios');
+jest.mock('../../src/api/aiPresetsApi');
 
 // Mock components that might cause issues in test environment
 jest.mock('../../src/components/features/NewsletterPreview', () => () => <div data-testid="preview" />);
@@ -45,18 +47,16 @@ describe('NewsletterDraft - AI Subject Recommendation', () => {
     }
   };
 
-  const mockPresets = {
-    data: [
-      { id: 1, name: 'For Developers', prompt_template: 'Template 1', is_default: 1 },
-      { id: 2, name: 'For Leaders', prompt_template: 'Template 2', is_default: 1 }
-    ]
-  };
+  const mockPresets = [
+    { id: 1, name: 'For Developers', prompt_template: 'Template 1', is_default: 1 },
+    { id: 2, name: 'For Leaders', prompt_template: 'Template 2', is_default: 1 }
+  ];
 
   beforeEach(() => {
     jest.clearAllMocks();
+    aiPresetsApi.getAll.mockResolvedValue(mockPresets);
     axios.get.mockImplementation((url) => {
       if (url.includes('/newsletters/1')) return Promise.resolve(mockNewsletter);
-      if (url.includes('/ai-presets')) return Promise.resolve(mockPresets);
       if (url.includes('/templates')) return Promise.resolve({ data: [] });
       if (url.includes('/preview')) return Promise.resolve({ data: '<html></html>' });
       return Promise.reject(new Error('Not found'));
@@ -102,15 +102,9 @@ describe('NewsletterDraft - AI Subject Recommendation', () => {
     });
   });
 
-  it('button is disabled if no preset is selected', async () => {
+  it('button is disabled if no presets available', async () => {
     // Empty presets
-    axios.get.mockImplementation((url) => {
-      if (url.includes('/newsletters/1')) return Promise.resolve(mockNewsletter);
-      if (url.includes('/ai-presets')) return Promise.resolve({ data: [] });
-      if (url.includes('/templates')) return Promise.resolve({ data: [] });
-      if (url.includes('/preview')) return Promise.resolve({ data: '<html></html>' });
-      return Promise.reject(new Error('Not found'));
-    });
+    aiPresetsApi.getAll.mockResolvedValue([]);
 
     renderWithContext(<NewsletterDraft />);
     

@@ -2,15 +2,23 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
-import NewsletterDraft from '../../../pages/NewsletterDraft';
-import { FeedbackContext } from '../../../contexts/FeedbackContext';
+import NewsletterDraft from '../../pages/NewsletterDraft';
+import { FeedbackContext } from '../../contexts/FeedbackContext';
+import { aiPresetsApi } from '../../api/aiPresetsApi';
 import '@testing-library/jest-dom';
 
 // Mock axios
 jest.mock('axios');
+jest.mock('../../api/aiPresetsApi');
 
 // Mock components that might be complex
-jest.mock('../../../components/features/NewsletterPreview', () => () => <div data-testid="preview" />);
+jest.mock('../../components/features/NewsletterPreview', () => () => <div data-testid="preview" />);
+jest.mock('../../components/features/RichTextEditor', () => ({ label, value, onChange }) => (
+  <div data-testid={`editor-${label}`}>
+    <label>{label}</label>
+    <textarea value={value} onChange={(e) => onChange(e.target.value)} />
+  </div>
+));
 
 const mockShowFeedback = jest.fn();
 
@@ -39,9 +47,15 @@ describe('NewsletterDraft US1 - Subject and Deletion', () => {
   };
 
   beforeEach(() => {
-    axios.get.mockResolvedValue(mockNewsletter);
+    axios.get.mockImplementation((url) => {
+      if (url.includes('/newsletters/1')) return Promise.resolve(mockNewsletter);
+      if (url.includes('/templates')) return Promise.resolve({ data: [] });
+      if (url.includes('/preview')) return Promise.resolve({ data: '<html></html>' });
+      return Promise.reject(new Error('Not found'));
+    });
     axios.put.mockResolvedValue({ data: { success: true } });
     axios.delete.mockResolvedValue({ data: { success: true } });
+    aiPresetsApi.getAll.mockResolvedValue([]);
   });
 
   it('renders subject input with initial value', async () => {

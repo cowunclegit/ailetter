@@ -27,7 +27,7 @@ describe('EmailService', () => {
     const result = await service.sendTestNewsletter(1);
 
     expect(NewsletterModel.updateConfirmationUuid).toHaveBeenCalledWith(1, expect.any(String));
-    expect(generateNewsletterHtml).toHaveBeenCalledWith(mockNewsletter.items, null, expect.any(String));
+    expect(generateNewsletterHtml).toHaveBeenCalledWith(mockNewsletter, null, expect.any(String));
     expect(result.recipient).toBe('admin@example.com');
     expect(result.uuid).toBeDefined();
   });

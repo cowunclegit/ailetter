@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const TrendItemModel = require('../models/trendItemModel');
-const { collectionService, runCollection } = require('../jobs/collectionJob');
+const { runCollection } = require('../jobs/collectionJob');
+const { activeCollections } = require('../services/collectionState');
 
 router.get('/', async (req, res, next) => {
   try {
@@ -29,7 +30,7 @@ router.post('/collect', async (req, res, next) => {
     const { startDate, endDate } = req.body || {};
     const lockKey = startDate || 'auto';
 
-    if (collectionService.activeCollections.get(lockKey)) {
+    if (activeCollections.get(lockKey)) {
       return res.status(409).json({ error: 'Collection already in progress for this week' });
     }
 
@@ -45,7 +46,7 @@ router.post('/collect', async (req, res, next) => {
 router.get('/collect/status', (req, res) => {
   const { startDate } = req.query;
   const lockKey = startDate || 'auto';
-  res.json({ isCollecting: !!collectionService.activeCollections.get(lockKey) });
+  res.json({ isCollecting: !!activeCollections.get(lockKey) });
 });
 
 module.exports = router;

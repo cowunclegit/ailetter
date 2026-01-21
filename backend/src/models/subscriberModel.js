@@ -1,16 +1,16 @@
-const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 
 class SubscriberModel {
   static create(email) {
     return new Promise((resolve, reject) => {
-      const token = crypto.randomBytes(16).toString('hex');
+      const uuid = uuidv4();
       db.run(
-        "INSERT INTO subscribers (email, status, token) VALUES (?, 'active', ?)",
-        [email, token],
+        "INSERT INTO subscribers (email, is_subscribed, uuid) VALUES (?, 1, ?)",
+        [email, uuid],
         function (err) {
           if (err) reject(err);
-          else resolve({ id: this.lastID, email, token });
+          else resolve({ id: this.lastID, email, uuid, is_subscribed: 1 });
         }
       );
     });
@@ -25,9 +25,9 @@ class SubscriberModel {
     });
   }
 
-  static unsubscribeByToken(token) {
+  static unsubscribeByToken(uuid) {
       return new Promise((resolve, reject) => {
-          db.run("UPDATE subscribers SET status = 'unsubscribed', unsubscribed_at = ? WHERE token = ?", [new Date().toISOString(), token], function(err) {
+          db.run("UPDATE subscribers SET is_subscribed = 0, updated_at = CURRENT_TIMESTAMP WHERE uuid = ?", [uuid], function(err) {
               if (err) reject(err);
               else resolve({ changes: this.changes });
           });
@@ -36,7 +36,7 @@ class SubscriberModel {
 
   static getAllActive() {
       return new Promise((resolve, reject) => {
-          db.all("SELECT * FROM subscribers WHERE status = 'active'", [], (err, rows) => {
+          db.all("SELECT * FROM subscribers WHERE is_subscribed = 1", [], (err, rows) => {
               if (err) reject(err);
               else resolve(rows);
           });

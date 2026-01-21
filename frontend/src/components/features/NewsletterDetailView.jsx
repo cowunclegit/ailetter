@@ -29,16 +29,12 @@ const NewsletterDetailView = ({ newsletter }) => {
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" component="h1">
-            {subject || `Newsletter #${newsletter.id}`}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Issue Date: {issue_date}
           </Typography>
           {getStatusChip(status)}
         </Box>
-        
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Issue Date: {issue_date}
-        </Typography>
         
         <Divider sx={{ my: 2 }} />
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import axios from 'axios';
 import Dashboard from './Dashboard';
 import { FeedbackContext } from '../contexts/FeedbackContext';
@@ -20,6 +20,16 @@ jest.mock('../api/categoriesApi', () => ({
   categoriesApi: {
     getAll: jest.fn()
   }
+}));
+
+// Mock SocketContext
+const mockSocket = {
+  on: jest.fn(),
+  off: jest.fn(),
+  emit: jest.fn(),
+};
+jest.mock('../contexts/SocketContext', () => ({
+  useSocket: () => mockSocket,
 }));
 
 const mockShowFeedback = jest.fn();
@@ -83,8 +93,15 @@ describe('Dashboard Integration', () => {
     });
 
     const collectButton = await screen.findByText(/Collect Now/i);
+    
+    // Simulate proxy connected so button is enabled
+    const proxyHandler = mockSocket.on.mock.calls.find(call => call[0] === 'proxy_status')[1];
+    act(() => {
+      proxyHandler({ connected: true });
+    });
+
     await act(async () => {
-      collectButton.click();
+      fireEvent.click(collectButton);
     });
 
     await waitFor(() => {

@@ -66,7 +66,7 @@ const NewsletterDetails = () => {
   return (
     <Container maxWidth="md">
       <PageHeader 
-        title={`Newsletter Details #${id}`} 
+        title={`Newsletter Details #${newsletter.issue_number}`} 
         action={
           <Box sx={{ display: 'flex', gap: 2 }}>
             {newsletter.status === 'draft' && (

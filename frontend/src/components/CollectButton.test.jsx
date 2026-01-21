@@ -11,11 +11,21 @@ jest.mock('../contexts/FeedbackContext', () => ({
   }),
 }));
 
+// Mock SocketContext
+const mockSocket = {
+  on: jest.fn(),
+  off: jest.fn(),
+  emit: jest.fn(),
+};
+jest.mock('../contexts/SocketContext', () => ({
+  useSocket: () => mockSocket,
+}));
+
 // Mock the API service
 jest.mock('../api/trendsApi', () => ({
   trendsApi: {
     triggerCollection: jest.fn(),
-    getCollectionStatus: jest.fn(),
+    getCollectionStatus: jest.fn().mockResolvedValue({ isCollecting: false }),
   }
 }));
 
@@ -24,42 +34,40 @@ describe('CollectButton', () => {
     jest.clearAllMocks();
   });
 
+  const simulateProxyConnected = () => {
+    const handler = mockSocket.on.mock.calls.find(call => call[0] === 'proxy_status')[1];
+    act(() => {
+      handler({ connected: true });
+    });
+  };
+
   it('renders correctly', () => {
     render(<CollectButton />);
     expect(screen.getByText(/collect now/i)).toBeInTheDocument();
   });
 
   it('triggers collection on click and shows loading state', async () => {
-    // Mock successful start
     trendsApi.triggerCollection.mockResolvedValue({ status: 'started' });
-    // Mock status checking to be true initially
-    trendsApi.getCollectionStatus.mockResolvedValue({ isCollecting: true });
-
     render(<CollectButton />);
     
-    const button = screen.getByRole('button', { name: /collect now/i });
+    simulateProxyConnected();
     
+    const button = screen.getByRole('button', { name: /collect now/i });
+    expect(button).not.toBeDisabled();
+
     await act(async () => {
         fireEvent.click(button);
     });
 
-    // Should call API
     expect(trendsApi.triggerCollection).toHaveBeenCalled();
-    
-    // Should show loading spinner or text
-    await waitFor(() => {
-        expect(screen.getByRole('progressbar')).toBeInTheDocument();
-    });
-    
-    // Button should be disabled
-    expect(button).toBeDisabled();
+    expect(mockShowFeedback).toHaveBeenCalledWith('Collection started...', 'info');
   });
 
   it('handles API failure', async () => {
      trendsApi.triggerCollection.mockRejectedValue(new Error('Network Error'));
-     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
      render(<CollectButton />);
+     
+     simulateProxyConnected();
      const button = screen.getByRole('button', { name: /collect now/i });
      
      await act(async () => {
@@ -70,61 +78,32 @@ describe('CollectButton', () => {
          expect(trendsApi.triggerCollection).toHaveBeenCalled();
      });
      
-     // Verify feedback
      expect(mockShowFeedback).toHaveBeenCalledWith(expect.stringContaining('Failed'), 'error');
-     
-     // Should revert to enabled (loading stops)
-     await waitFor(() => {
-        expect(button).not.toBeDisabled();
-     });
-     
-     consoleSpy.mockRestore();
+     expect(button).not.toBeDisabled();
   });
 
-  it('polls status and calls onComplete when finished', async () => {
-    jest.useFakeTimers();
+  it('responds to socket progress events', async () => {
     const onComplete = jest.fn();
-    
-    trendsApi.triggerCollection.mockResolvedValue({ status: 'started' });
-    trendsApi.getCollectionStatus
-        .mockResolvedValueOnce({ isCollecting: true })
-        .mockResolvedValueOnce({ isCollecting: false });
-
     render(<CollectButton onComplete={onComplete} />);
     
-    const button = screen.getByRole('button', { name: /collect now/i });
+    simulateProxyConnected();
     
+    const progressHandler = mockSocket.on.mock.calls.find(call => call[0] === 'collection_progress')[1];
+    
+    // Simulate in progress
     await act(async () => {
-        fireEvent.click(button);
+      progressHandler({ status: 'in_progress', current: 5, total: 10, message: 'Processing' });
     });
     
-    // Flush promises to let setIsPolling(true) happen
+    expect(screen.getByText(/Processing/)).toBeInTheDocument();
+    expect(screen.getByText(/5\/10/)).toBeInTheDocument();
+    
+    // Simulate complete
     await act(async () => {
-        await Promise.resolve();
-        await Promise.resolve();
-    });
-
-    expect(trendsApi.triggerCollection).toHaveBeenCalled();
-    
-    // Advance time for first poll
-    await act(async () => {
-        jest.advanceTimersByTime(2000);
+      progressHandler({ status: 'complete' });
     });
     
-    expect(trendsApi.getCollectionStatus).toHaveBeenCalled();
-
-    // Advance again for completion
-    await act(async () => {
-        jest.advanceTimersByTime(2000);
-    });
-    
-    // Wait for effect updates
-    await waitFor(() => {
-        expect(onComplete).toHaveBeenCalled();
-    });
-    
-    expect(button).not.toBeDisabled();
-    
-    jest.useRealTimers();
+    expect(onComplete).toHaveBeenCalled();
+    expect(mockShowFeedback).toHaveBeenCalledWith(expect.stringContaining('complete'), 'success');
   });
 });

@@ -79,9 +79,24 @@ CREATE TABLE IF NOT EXISTS ai_subject_presets (
 
 CREATE TABLE IF NOT EXISTS subscribers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  uuid TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
-  status TEXT NOT NULL CHECK(status IN ('active', 'unsubscribed')),
-  subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  unsubscribed_at DATETIME,
-  token TEXT NOT NULL UNIQUE
+  name TEXT,
+  is_subscribed BOOLEAN DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS subscriber_categories (
+  subscriber_id INTEGER NOT NULL,
+  preset_id INTEGER NOT NULL,
+  PRIMARY KEY (subscriber_id, preset_id),
+  FOREIGN KEY (subscriber_id) REFERENCES subscribers(id) ON DELETE CASCADE,
+  FOREIGN KEY (preset_id) REFERENCES ai_subject_presets(id) ON DELETE CASCADE
+);
+
+-- Seed initial AI subject presets
+INSERT OR IGNORE INTO ai_subject_presets (name, prompt_template, is_default) VALUES 
+('Standard Trend Summary', 'Summarize the following trends for a general tech audience: {{items}}', 1),
+('SW Developer Focus', 'Highlight technical details and architectural implications for developers: {{items}}', 0),
+('Business Leader Insights', 'Focus on market impact and strategic importance for executives: {{items}}', 0);

@@ -58,7 +58,9 @@ class NewsletterModel {
   static async getById(id) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT n.*, t.id as trend_id, t.title, t.summary, t.original_url, t.published_at, s.name as source_name, ni.display_order
+        SELECT n.*, 
+               (SELECT COUNT(*) FROM newsletters WHERE id <= n.id) as issue_number,
+               t.id as trend_id, t.title, t.summary, t.original_url, t.published_at, s.name as source_name, ni.display_order
         FROM newsletters n
         LEFT JOIN newsletter_items ni ON n.id = ni.newsletter_id
         LEFT JOIN trend_items t ON ni.trend_item_id = t.id
@@ -72,6 +74,7 @@ class NewsletterModel {
         else {
           const newsletter = {
             id: rows[0].id,
+            issue_number: rows[0].issue_number,
             issue_date: rows[0].issue_date,
             status: rows[0].status,
             template_id: rows[0].template_id,
@@ -353,7 +356,9 @@ class NewsletterModel {
   static async getAll() {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT n.*, COUNT(ni.trend_item_id) as item_count 
+        SELECT n.*, 
+               (SELECT COUNT(*) FROM newsletters WHERE id <= n.id) as issue_number,
+               COUNT(ni.trend_item_id) as item_count 
         FROM newsletters n
         LEFT JOIN newsletter_items ni ON n.id = ni.newsletter_id
         GROUP BY n.id

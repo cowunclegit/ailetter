@@ -66,7 +66,7 @@ const NewsletterHistory = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
+              <TableCell>Issue #</TableCell>
               <TableCell>Issue Date</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Items</TableCell>
@@ -89,7 +89,7 @@ const NewsletterHistory = () => {
                   onClick={() => handleRowClick(newsletter.id)}
                   sx={{ cursor: 'pointer' }}
                 >
-                  <TableCell>{newsletter.id}</TableCell>
+                  <TableCell>#{newsletter.issue_number}</TableCell>
                   <TableCell>{newsletter.issue_date}</TableCell>
                   <TableCell>{getStatusChip(newsletter.status)}</TableCell>
                   <TableCell align="right">{newsletter.item_count}</TableCell>

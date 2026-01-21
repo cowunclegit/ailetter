@@ -66,7 +66,9 @@ const Settings = () => {
       showFeedback('Preset deleted successfully', 'success');
       fetchPresets();
     } catch (error) {
-      showFeedback(error.response?.data?.message || 'Failed to delete preset.', 'error');
+      console.error('Delete failed:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to delete preset.';
+      showFeedback(`Delete failed: ${errorMsg}`, 'error');
     }
   };
 
@@ -113,6 +115,7 @@ const Settings = () => {
                         onClick={() => handleDelete(preset.id)} 
                         color="error" 
                         disabled={preset.is_default === 1}
+                        aria-label="delete"
                       >
                         <DeleteIcon />
                       </IconButton>

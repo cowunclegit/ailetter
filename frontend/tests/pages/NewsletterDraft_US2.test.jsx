@@ -2,16 +2,18 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
-import NewsletterDraft from '../../../pages/NewsletterDraft';
-import { FeedbackContext } from '../../../contexts/FeedbackContext';
+import NewsletterDraft from '../../src/pages/NewsletterDraft';
+import { FeedbackContext } from '../../src/contexts/FeedbackContext';
+import { aiPresetsApi } from '../../src/api/aiPresetsApi';
 import '@testing-library/jest-dom';
 
 // Mock axios
 jest.mock('axios');
+jest.mock('../../src/api/aiPresetsApi');
 
 // Mock components
-jest.mock('../../../components/features/NewsletterPreview', () => () => <div data-testid="preview" />);
-jest.mock('../../../components/features/RichTextEditor', () => ({ label, value, onChange }) => (
+jest.mock('../../src/components/features/NewsletterPreview', () => () => <div data-testid="preview" />);
+jest.mock('../../src/components/features/RichTextEditor', () => ({ label, value, onChange }) => (
   <div data-testid={`editor-${label}`}>
     <label>{label}</label>
     <textarea value={value} onChange={(e) => onChange(e.target.value)} />
@@ -44,8 +46,14 @@ describe('NewsletterDraft US2 - Intro and Outro Editors', () => {
   };
 
   beforeEach(() => {
-    axios.get.mockResolvedValue(mockNewsletter);
+    axios.get.mockImplementation((url) => {
+      if (url.includes('/newsletters/1')) return Promise.resolve(mockNewsletter);
+      if (url.includes('/templates')) return Promise.resolve({ data: [] });
+      if (url.includes('/preview')) return Promise.resolve({ data: '<html></html>' });
+      return Promise.reject(new Error('Not found'));
+    });
     axios.put.mockResolvedValue({ data: { success: true } });
+    aiPresetsApi.getAll.mockResolvedValue([]);
   });
 
   it('renders intro and outro editors with initial content', async () => {

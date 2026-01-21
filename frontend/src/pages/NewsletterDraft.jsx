@@ -34,6 +34,7 @@ import NewsletterPreview from '../components/features/NewsletterPreview';
 import RichTextEditor from '../components/features/RichTextEditor';
 import TemplateGrid from '../components/features/TemplateGrid';
 import { useFeedback } from '../contexts/FeedbackContext';
+import { aiPresetsApi } from '../api/aiPresetsApi';
 
 const API_URL = '/api';
 
@@ -97,12 +98,11 @@ const NewsletterDraft = () => {
 
   const fetchAiPresets = async () => {
     try {
-      const response = await axios.get(`${API_URL}/ai-presets`);
-      setAiPresets(response.data);
-      if (response.data.length > 0) {
-        // Find first default or just first
-        const defaultPreset = response.data.find(p => p.is_default === 1) || response.data[0];
-        setSelectedPresetId(defaultPreset.id);
+      const response = await aiPresetsApi.getAll();
+      const presets = response || [];
+      setAiPresets(presets);
+      if (presets.length > 0 && !selectedPresetId) {
+        setSelectedPresetId(presets[0].id);
       }
     } catch (error) {
       console.error('Error fetching AI presets:', error);
@@ -250,7 +250,7 @@ const NewsletterDraft = () => {
   return (
     <Container maxWidth="md">
       <PageHeader 
-        title={`Organize Newsletter #${id}`} 
+        title={`Organize Newsletter #${newsletter.issue_number}`} 
       />
       
       <Box sx={{ mt: 4, mb: 4 }}>

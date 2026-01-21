@@ -1,6 +1,6 @@
 const TrendItemModel = require('../../models/trendItemModel');
 const { saveThumbnail } = require('../../utils/image-storage');
-const { collectionService } = require('../../jobs/collectionJob');
+const { activeCollections } = require('../collectionState');
 
 const handleItemCollected = async (payload, io) => {
   const { task_id, item } = payload;
@@ -33,7 +33,7 @@ const handleItemCollected = async (payload, io) => {
 const handleCollectionComplete = (payload, io) => {
   const { task_id } = payload;
   console.log(`Collection task ${task_id} completed`);
-  collectionService.activeCollections.delete(task_id);
+  activeCollections.delete(task_id);
   
   if (io) {
     io.emit('collection_progress', {

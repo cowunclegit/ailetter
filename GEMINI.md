@@ -45,9 +45,9 @@ tests/
 Node.js (Backend), React.js (Frontend): Follow standard conventions
 
 ## Recent Changes
+- 022-manage-subscribers: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 021-collect-proxy-service: Added Node.js v18+ + `ws` (WebSocket), `express` (Main Backend API), `fs-extra` (Image storage)
 - 020-ai-subject-options: Added Node.js v18+, React v19 + Express, Axios, @mui/material, SQLite3
-- 019-newsletter-history-details: Added Node.js, Reac + Express, Axios, @mui/material, React Router
 
 
 

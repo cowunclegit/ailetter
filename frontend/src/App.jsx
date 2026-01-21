@@ -17,6 +17,8 @@ import NewsletterDraft from './pages/NewsletterDraft';
 import NewsletterDetails from './pages/NewsletterDetails';
 import Settings from './pages/Settings';
 import DebugPage from './pages/Debug';
+import SubscribersPage from './pages/SubscribersPage';
+import UnsubscribePage from './pages/UnsubscribePage';
 
 function App() {
   return (
@@ -32,9 +34,11 @@ function App() {
               <Route path="/newsletters/:id/draft" element={<NewsletterDraft />} />
               <Route path="/sources" element={<Sources />} />
               <Route path="/categories" element={<CategoryManagement />} />
+              <Route path="/subscribers" element={<SubscribersPage />} />
               <Route path="/history" element={<NewsletterHistory />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/subscribe" element={<Public />} />
+              <Route path="/unsubscribe/:uuid" element={<UnsubscribePage />} />
               <Route path="/unsubscribe" element={<Public />} />
               <Route path="/confirmation-success" element={<Public type="success" />} />
               <Route path="/confirmation-failed" element={<Public type="failed" />} />

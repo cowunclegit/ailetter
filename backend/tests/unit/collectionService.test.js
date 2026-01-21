@@ -1,4 +1,5 @@
 const CollectionService = require('../../src/services/collectionService');
+const { activeCollections } = require('../../src/services/collectionState');
 const SourceModel = require('../../src/models/sourceModel');
 const TrendItemModel = require('../../src/models/trendItemModel');
 
@@ -10,8 +11,13 @@ describe('CollectionService Locking', () => {
 
   beforeEach(() => {
     service = new CollectionService();
+    activeCollections.clear();
     SourceModel.getAll.mockResolvedValue([]);
     TrendItemModel.create.mockResolvedValue({ id: 1 });
+  });
+
+  afterEach(() => {
+    activeCollections.clear();
   });
 
   it('should allow concurrent collection for different weeks', async () => {
@@ -27,13 +33,13 @@ describe('CollectionService Locking', () => {
     const promise1 = service.collectAll(week1Start, '2026-01-11T23:59:59Z');
     const promise2 = service.collectAll(week2Start, '2026-01-18T23:59:59Z');
 
-    expect(service.activeCollections.has(week1Start)).toBeTruthy();
-    expect(service.activeCollections.has(week2Start)).toBeTruthy();
+    expect(activeCollections.has(week1Start)).toBeTruthy();
+    expect(activeCollections.has(week2Start)).toBeTruthy();
 
     await Promise.all([promise1, promise2]);
 
-    expect(service.activeCollections.has(week1Start)).toBeFalsy();
-    expect(service.activeCollections.has(week2Start)).toBeFalsy();
+    expect(activeCollections.has(week1Start)).toBeFalsy();
+    expect(activeCollections.has(week2Start)).toBeFalsy();
   });
 
   it('should prevent concurrent collection for the same week', async () => {

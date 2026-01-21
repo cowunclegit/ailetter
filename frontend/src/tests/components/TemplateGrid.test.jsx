@@ -24,9 +24,12 @@ describe('TemplateGrid', () => {
   });
 
   it('highlights the selected template', () => {
-    const { container } = render(<TemplateGrid templates={mockTemplates} selectedId="t1" onSelect={() => {}} />);
-    // Check for border or some indication of selection
-    // Since we use MUI, we can check for the presence of the check icon
-    expect(container.querySelector('svg[data-testid="CheckCircleIcon"]')).toBeInTheDocument();
+    render(<TemplateGrid templates={mockTemplates} selectedId="t1" onSelect={() => {}} />);
+    // Check for MUI primary color class which indicates selection in Chip
+    const selectedChip = screen.getByText('Template 1').closest('.MuiChip-root');
+    expect(selectedChip).toHaveClass('MuiChip-colorPrimary');
+    
+    const unselectedChip = screen.getByText('Template 2').closest('.MuiChip-root');
+    expect(unselectedChip).not.toHaveClass('MuiChip-colorPrimary');
   });
 });

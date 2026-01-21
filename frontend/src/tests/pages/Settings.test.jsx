@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Settings from '../../../pages/Settings';
-import { FeedbackContext } from '../../../contexts/FeedbackContext';
-import { aiPresetsApi } from '../../../api/aiPresetsApi';
+import Settings from '../../pages/Settings';
+import { FeedbackContext } from '../../contexts/FeedbackContext';
+import { aiPresetsApi } from '../../api/aiPresetsApi';
 import '@testing-library/jest-dom';
 
-jest.mock('../../../api/aiPresetsApi');
+jest.mock('../../api/aiPresetsApi');
 
 const mockShowFeedback = jest.fn();
 
