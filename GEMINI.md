@@ -29,6 +29,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-13
 - Node.js v18+, React.js (Frontend) + `express`, `sqlite3`, `axios`, `uuid` (024-infra-setup-http-polling)
 - Node.js (v18+) + `sqlite3`, `express` (025-dashboard-chronological-sort)
 - SQLite3 (`trend_items` table) (025-dashboard-chronological-sort)
+- Node.js v18+ + `axios`, `https-proxy-agent` (or similar), `express`, `ws` (026-add-proxy-support)
+- N/A (Configuration-based) (026-add-proxy-support)
 
 - Node.js (Backend), React.js (Frontend) + `rss-parser` (RSS), `googleapis` (YouTube), `@sendgrid/mail` (Email), `node-cron` (Scheduling) (001-ai-trend-newsletter)
 
@@ -48,9 +50,9 @@ tests/
 Node.js (Backend), React.js (Frontend): Follow standard conventions
 
 ## Recent Changes
+- 026-add-proxy-support: Added Node.js v18+ + `axios`, `https-proxy-agent` (or similar), `express`, `ws`
 - 025-dashboard-chronological-sort: Added Node.js (v18+) + `sqlite3`, `express`
 - 024-infra-setup-http-polling: Added Node.js v18+, React.js (Frontend) + `express`, `sqlite3`, `axios`, `uuid`
-- 023-mock-ai-service: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 
 

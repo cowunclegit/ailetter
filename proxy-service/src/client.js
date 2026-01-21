@@ -1,4 +1,5 @@
 const { collectFromRSS, collectFromYoutube, extractThumbnail, fetchAndBase64 } = require('./collector');
+const { getUndiciProxyAgent } = require('./utils/proxy');
 require('dotenv').config();
 
 const BACKEND_URL = process.env.MAIN_BACKEND_URL || 'http://localhost:3080';
@@ -14,12 +15,14 @@ const pollForTasks = async () => {
   if (isProcessing) return;
 
   try {
+    const agent = getUndiciProxyAgent(BACKEND_URL);
     const response = await fetch(`${BACKEND_URL}/api/proxy/tasks`, {
       method: 'GET',
       headers: { 
         'x-proxy-token': TOKEN,
         'Connection': 'close' // Explicitly disable keep-alive at protocol level
-      }
+      },
+      dispatcher: agent
     });
 
     if (response.status === 200) {
@@ -43,6 +46,7 @@ const pollForTasks = async () => {
 
 const sendUpdate = async (type, payload) => {
   try {
+    const agent = getUndiciProxyAgent(BACKEND_URL);
     const response = await fetch(`${BACKEND_URL}/api/proxy/update`, {
       method: 'POST',
       headers: { 
@@ -50,7 +54,8 @@ const sendUpdate = async (type, payload) => {
         'x-proxy-token': TOKEN,
         'Connection': 'close'
       },
-      body: JSON.stringify({ type, payload })
+      body: JSON.stringify({ type, payload }),
+      dispatcher: agent
     });
 
     if (!response.ok) {
