@@ -54,7 +54,7 @@ router.get('/tasks', authProxy, (req, res) => {
  * POST /api/proxy/update
  * Handles progress, item collection, completion, and errors from proxy
  */
-router.post('/update', authProxy, (req, res) => {
+router.post('/update', authProxy, async (req, res) => {
   const { type, payload } = req.body;
   const { task_id } = payload;
 
@@ -74,7 +74,7 @@ router.post('/update', authProxy, (req, res) => {
 
   switch (type) {
     case 'ITEM_COLLECTED':
-      handleItemCollected(payload, io);
+      await handleItemCollected(payload, io);
       break;
     case 'PROGRESS_UPDATE':
       handleProgressUpdate(payload, io);

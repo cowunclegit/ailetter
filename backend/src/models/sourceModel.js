@@ -61,9 +61,18 @@ class SourceModel {
     });
   }
 
-  static create(source) {
+  static async create(source) {
     const { name, type, url, reliability_score = 1.0, categoryIds = [] } = source;
+    const { acquireLock } = require('../utils/db-lock');
+    const release = await acquireLock();
+
     return new Promise((resolve, reject) => {
+      const cleanup = (err, result) => {
+        release();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
         db.run(
@@ -72,13 +81,13 @@ class SourceModel {
           function (err) {
             if (err) {
               db.run('ROLLBACK');
-              return reject(err);
+              return cleanup(err);
             }
             const sourceId = this.lastID;
             
             if (categoryIds.length === 0) {
               db.run('COMMIT');
-              return resolve({ id: sourceId, ...source });
+              return cleanup(null, { id: sourceId, ...source });
             }
 
             const stmt = db.prepare('INSERT INTO source_categories (source_id, category_id) VALUES (?, ?)');
@@ -88,10 +97,10 @@ class SourceModel {
             stmt.finalize(err => {
               if (err) {
                 db.run('ROLLBACK');
-                reject(err);
+                cleanup(err);
               } else {
                 db.run('COMMIT');
-                resolve({ id: sourceId, ...source });
+                cleanup(null, { id: sourceId, ...source });
               }
             });
           }
@@ -100,9 +109,18 @@ class SourceModel {
     });
   }
 
-  static update(id, source) {
+  static async update(id, source) {
     const { name, url, reliability_score, categoryIds } = source;
+    const { acquireLock } = require('../utils/db-lock');
+    const release = await acquireLock();
+
     return new Promise((resolve, reject) => {
+      const cleanup = (err, result) => {
+        release();
+        if (err) reject(err);
+        else resolve(result);
+      };
+
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
         
@@ -148,11 +166,11 @@ class SourceModel {
           .then(updateCategories)
           .then(() => {
             db.run('COMMIT');
-            resolve({ id, changes: 1 });
+            cleanup(null, { id, changes: 1 });
           })
           .catch(err => {
             db.run('ROLLBACK');
-            reject(err);
+            cleanup(err);
           });
       });
     });
