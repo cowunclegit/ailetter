@@ -95,8 +95,15 @@ CREATE TABLE IF NOT EXISTS subscriber_categories (
   FOREIGN KEY (preset_id) REFERENCES ai_subject_presets(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS proxy_tasks (
+  id TEXT PRIMARY KEY,
+  status TEXT CHECK(status IN ('pending', 'processing', 'completed', 'failed')),
+  sources TEXT, -- JSON string
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Seed initial AI subject presets
 INSERT OR IGNORE INTO ai_subject_presets (name, prompt_template, is_default) VALUES 
 ('Standard Trend Summary', 'Summarize the following trends for a general tech audience: {{items}}', 1),
-('SW Developer Focus', 'Highlight technical details and architectural implications for developers: {{items}}', 0),
-('Business Leader Insights', 'Focus on market impact and strategic importance for executives: {{items}}', 0);
+('SW Developer Focus', 'Highlight technical details and architectural implications for developers: {{items}}', 0);

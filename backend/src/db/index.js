@@ -29,7 +29,30 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error('Failed to enable foreign keys', err);
       }
     });
+
+    // Auto-initialize schema
+    initializeSchema(db);
   }
 });
+
+function initializeSchema(db) {
+  const schemaPath = path.resolve(__dirname, 'schema.sql');
+  if (!fs.existsSync(schemaPath)) {
+    console.error('Schema file not found:', schemaPath);
+    return;
+  }
+
+  const schema = fs.readFileSync(schemaPath, 'utf8');
+  
+  // Split schema into individual statements if needed, or use db.exec
+  // exec can run multiple statements
+  db.exec(schema, (err) => {
+    if (err) {
+      console.error('Error initializing schema:', err.message);
+    } else {
+      console.log('Database schema initialized/verified successfully');
+    }
+  });
+}
 
 module.exports = db;

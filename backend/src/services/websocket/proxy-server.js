@@ -18,7 +18,28 @@ let heartbeatInterval = null;
 const activeTasks = new Map();
 const COLLECTION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
+let lastActivity = 0;
+const ACTIVITY_TIMEOUT = 15000; // 15 seconds (3 polling cycles)
+
+const updateLastActivity = (io) => {
+  const now = Date.now();
+  const wasConnected = (now - lastActivity) < ACTIVITY_TIMEOUT;
+  lastActivity = now;
+  
+  if (!wasConnected && io) {
+    io.emit('proxy_status', { connected: true });
+  }
+};
+
 const initProxyServer = (server, app, io) => {
+  // Check for inactivity periodically
+  setInterval(() => {
+    const isConnected = (Date.now() - lastActivity) < ACTIVITY_TIMEOUT;
+    if (io) {
+      io.emit('proxy_status', { connected: isConnected });
+    }
+  }, 10000);
+
   const wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (request, socket, head) => {
@@ -104,7 +125,8 @@ const initProxyServer = (server, app, io) => {
   if (io) {
     io.on('connection', (socket) => {
       socket.on('get_proxy_status', () => {
-        socket.emit('proxy_status', { connected: !!proxyClient });
+        const isConnected = (Date.now() - lastActivity) < ACTIVITY_TIMEOUT;
+        socket.emit('proxy_status', { connected: isConnected });
       });
     });
   }
@@ -184,6 +206,7 @@ module.exports = {
   validateToken,
   initProxyServer,
   getProxyClient,
+  updateLastActivity,
   activeTasks,
   COLLECTION_TIMEOUT
 };

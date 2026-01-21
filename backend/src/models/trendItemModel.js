@@ -51,7 +51,7 @@ class TrendItemModel {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    query += ` GROUP BY t.id ORDER BY t.published_at DESC LIMIT ? OFFSET ?`;
+    query += ` GROUP BY t.id ORDER BY t.published_at DESC, t.id DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
     return new Promise((resolve, reject) => {
@@ -80,13 +80,17 @@ class TrendItemModel {
 
   static create(item) {
     const { source_id, title, original_url, published_at, summary, thumbnail_url, categoryIds = [] } = item;
+    
+    // Ensure published_at is in ISO8601 format for consistent sorting
+    const formattedDate = new Date(published_at).toISOString();
+
     return new Promise((resolve, reject) => {
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
         
         db.run(
           'INSERT INTO trend_items (source_id, title, original_url, published_at, summary, thumbnail_url) VALUES (?, ?, ?, ?, ?, ?)',
-          [source_id, title, original_url, published_at, summary, thumbnail_url],
+          [source_id, title, original_url, formattedDate, summary, thumbnail_url],
           function (err) {
             let trendItemId;
             if (err) {

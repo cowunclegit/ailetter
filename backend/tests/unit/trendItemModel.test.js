@@ -36,6 +36,50 @@ describe('TrendItem Model Status', () => {
         expect(trendAvail.status).toBe('available');
     });
 
+    it('returns items in descending chronological order', async () => {
+        // Insert items with specific timestamps
+        await new Promise((res) => db.run(`
+            INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES 
+            (201, 1, 'Oldest', 'u201', '2026-01-18T08:00:00Z'),
+            (202, 1, 'Newest', 'u202', '2026-01-18T10:00:00Z'),
+            (203, 1, 'Middle', 'u203', '2026-01-18T09:00:00Z')
+        `, res));
+
+        const trends = await TrendItemModel.getAll({ startDate: '2026-01-18T00:00:00Z' });
+        
+        expect(trends[0].id).toBe(202); // 10:00
+        expect(trends[1].id).toBe(203); // 09:00
+        expect(trends[2].id).toBe(201); // 08:00
+    });
+
+    it('sorts deterministically with id DESC when timestamps are identical', async () => {
+        // Insert items with identical timestamps but different IDs
+        await new Promise((res) => db.run(`
+            INSERT INTO trend_items (id, source_id, title, original_url, published_at) VALUES 
+            (401, 1, 'Older ID', 'u401', '2026-01-18T10:00:00Z'),
+            (402, 1, 'Newer ID', 'u402', '2026-01-18T10:00:00Z')
+        `, res));
+
+        const trends = await TrendItemModel.getAll({ startDate: '2026-01-18T00:00:00Z' });
+        
+        // Should be sorted by id DESC for deterministic order
+        expect(trends[0].id).toBe(402);
+        expect(trends[1].id).toBe(401);
+    });
+
+    it('standardizes published_at to ISO8601 when creating', async () => {
+        const item = {
+            source_id: 1,
+            title: 'Format Test',
+            original_url: 'http://format.com',
+            published_at: '2026-01-18 12:00:00' // Non-ISO string
+        };
+        const saved = await TrendItemModel.create(item);
+        
+        const row = await new Promise((res) => db.get("SELECT published_at FROM trend_items WHERE id = ?", [saved.id], (err, r) => res(r)));
+        expect(row.published_at).toBe(new Date('2026-01-18 12:00:00').toISOString());
+    });
+
     it('filters by default 28-day range if no dates provided', async () => {
         // This is a bit tricky to test with static data unless we control the "now" in the model
         // For now, let's just check that it handles the startDate/endDate correctly as it did before

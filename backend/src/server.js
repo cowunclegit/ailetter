@@ -1,5 +1,5 @@
 const express = require('express');
-const https = require('https');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
@@ -36,7 +36,14 @@ app.use(express.json());
 
 // Routes will be mounted here
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  const db = require('./db');
+  db.get('SELECT 1', (err) => {
+    res.status(200).json({ 
+      status: 'ok', 
+      protocol: config.protocol,
+      database: err ? 'error' : 'connected'
+    });
+  });
 });
 
 app.use('/api/trends', trendsRouter);
@@ -47,6 +54,7 @@ app.use('/api/subscribers', require('./api/subscribers'));
 app.use('/api/sources', require('./api/sources'));
 app.use('/api/categories', require('./api/categories'));
 app.use('/api/debug', require('./api/debug'));
+app.use('/api/proxy', require('./api/proxy'));
 
 // Serve static files from the React frontend app
 app.use(express.static(path.join(__dirname, '../../frontend/dist')));
@@ -64,12 +72,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 if (require.main === module) {
-  const httpsOptions = {
-    key: fs.readFileSync(config.sslKeyPath || path.join(__dirname, '../certs/key.pem')),
-    cert: fs.readFileSync(config.sslCertPath || path.join(__dirname, '../certs/cert.pem'))
-  };
-
-  const server = https.createServer(httpsOptions, app);
+  const server = http.createServer(app);
   
   const io = new Server(server, {
     cors: {
@@ -83,7 +86,7 @@ if (require.main === module) {
   initProxyServer(server, app, io);
 
   server.listen(config.port, () => {
-    console.log(`Server running on port ${config.port} (HTTPS)`);
+    console.log(`Server running on port ${config.port} (${config.protocol.toUpperCase()})`);
   });
 }
 
